@@ -1,25 +1,18 @@
+
+
 import { DashboardLayout } from "@/components/layout/dashboard-layout";
 import { StatCard } from "@/components/shared/stat-card";
 import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
-import { db } from "@/lib/db";
-import { users } from "@/db/schema";
-import { eq } from "drizzle-orm";
 
 export default async function DashboardPage() {
   const { userId } = await auth();
-  
+
+  console.log("Dashboard user:", userId);
+
   if (!userId) {
     redirect("/sign-in");
   }
-
-  const user = await db
-    .select()
-    .from(users)
-    .where(eq(users.clerkId, userId))
-    .limit(1);
-
-  const currentUser = user[0];
 
   return (
     <DashboardLayout>
