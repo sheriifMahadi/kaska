@@ -1,4 +1,4 @@
-import {executeTask} from "./task-executor"
+import {executeTask} from "../../core/execution/task-executor"
 
 
 /**

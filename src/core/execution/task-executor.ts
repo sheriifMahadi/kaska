@@ -1,7 +1,7 @@
 import { db } from "@/lib/db";
 import { tasks, taskOutputs, agents } from "@/db/schema";
 import { eq } from "drizzle-orm";
-import { generateAgentOutput } from "./agent-strategy";
+import { generateAgentOutput } from "../agents/agent-strategy";
 
 export async function executeTask(taskId: string) {
   const startTime = Date.now();

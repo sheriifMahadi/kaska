@@ -3,8 +3,8 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { users, tasks, agents } from "@/db/schema";
 import { eq, desc } from "drizzle-orm";
-import { runTask } from "@/lib/execution/run-task";
-import {enqueueTask} from "@/lib/execution/queue";
+import { enqueueTask } from "@/core/execution/queue";
+
 /* --------------------------------------------------
    GET: Fetch user tasks
 -------------------------------------------------- */
