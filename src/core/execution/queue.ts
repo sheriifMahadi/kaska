@@ -1,5 +1,5 @@
 import {executeTask} from "../../core/execution/task-executor"
-
+import { runTask} from "../../core/execution/run-task"
 
 /**
  * Queue abstraction layer (production-ready pattern)
@@ -26,7 +26,7 @@ async function processQueue() {
     if (!taskId) continue;
 
     try {
-      await executeTask(taskId);
+      await runTask(taskId);
     } catch (err) {
       console.error("[QUEUE EXECUTION ERROR]", err);
     }
