@@ -5,6 +5,7 @@ import {
   uuid,
   index,
   numeric,
+  boolean,
 } from "drizzle-orm/pg-core";
 
 /* ---------------------------
@@ -81,5 +82,93 @@ export const walletTransactions = pgTable(
   (table) => ({
     walletIdx: index("wallet_tx_wallet_idx").on(table.walletId),
     userIdx: index("wallet_tx_user_idx").on(table.userId),
+  })
+);
+
+
+export const agents = pgTable("agents", {
+  id: uuid("id").defaultRandom().primaryKey(),
+
+  name: text("name").notNull(),
+  description: text("description"),
+
+  type: text("type").notNull(),
+  // research | content | seo | social
+
+  // pricing model (IMPORTANT)
+  pricingModel: text("pricing_model").notNull(),
+  // "task" | "hour"
+
+  // per-task pricing (USDC)
+  taskPrice: numeric("task_price", {
+    precision: 10,
+    scale: 2,
+  }),
+
+  // per-hour pricing (USDC)
+  hourlyRate: numeric("hourly_rate", {
+    precision: 10,
+    scale: 2,
+  }),
+
+  // future-proofing (important for marketplace)
+  isActive: boolean("is_active").default(true),
+
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const tasks = pgTable(
+  "tasks",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, {
+        onDelete: "cascade",
+      }),
+
+    agentId: uuid("agent_id")
+      .notNull()
+      .references(() => agents.id, {
+        onDelete: "cascade",
+      }),
+
+    input: text("input").notNull(),
+
+    status: text("status")
+      .notNull()
+      .default("queued"),
+    // queued | running | completed | failed
+
+    createdAt: timestamp("created_at")
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => ({
+    userIdx: index("task_user_idx").on(table.userId),
+    agentIdx: index("task_agent_idx").on(table.agentId),
+  })
+);
+
+export const taskOutputs = pgTable(
+  "task_outputs",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+
+    taskId: uuid("task_id")
+      .notNull()
+      .references(() => tasks.id, {
+        onDelete: "cascade",
+      }),
+
+    output: text("output").notNull(),
+
+    createdAt: timestamp("created_at")
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => ({
+    taskIdx: index("task_output_task_idx").on(table.taskId),
   })
 );
