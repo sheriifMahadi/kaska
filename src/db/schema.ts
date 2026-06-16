@@ -4,6 +4,7 @@ import {
   timestamp,
   uuid,
   index,
+  numeric,
 } from "drizzle-orm/pg-core";
 
 /* ---------------------------
@@ -29,14 +30,14 @@ export const wallets = pgTable(
   {
     id: uuid("id").defaultRandom().primaryKey(),
 
-    // IMPORTANT: internal FK (NOT clerkId)
     userId: uuid("user_id")
       .notNull()
+      .unique()
       .references(() => users.id, { onDelete: "cascade" }),
 
     circleWalletId: text("circle_wallet_id").notNull(),
-    
-    circleWalletSetId: text("circle_wallet_set_id").notNull(),
+
+    circleWalletSetId: text("circle_wallet_set_id").notNull().unique(),
 
     address: text("address"),
 
@@ -61,20 +62,19 @@ export const walletTransactions = pgTable(
       .notNull()
       .references(() => wallets.id, { onDelete: "cascade" }),
 
-    // internal user reference (NOT clerkId)
     userId: uuid("user_id")
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
 
-    type: text("type").notNull(), // deposit | withdraw | spend | escrow
+    type: text("type").notNull(),
 
-    amount: text("amount").notNull(),
+    amount: numeric("amount", { precision: 18, scale: 6 }).notNull(),
 
     currency: text("currency").notNull().default("USDC"),
 
-    referenceId: text("reference_id"), // Circle tx id
+    referenceId: text("reference_id"),
 
-    source: text("source").notNull(), // circle | kaska | agent
+    source: text("source").notNull(),
 
     createdAt: timestamp("created_at").defaultNow().notNull(),
   },

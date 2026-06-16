@@ -29,9 +29,7 @@ export function DashboardClient() {
     async function initializeDashboard() {
       try {
         // 1. Ensure wallet exists
-        await fetch("/api/wallet/ensure", {
-          method: "POST",
-        });
+       
 
         // 2. Fetch wallet
         const walletRes = await fetch("/api/wallet", {

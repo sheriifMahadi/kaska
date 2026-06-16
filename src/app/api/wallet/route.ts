@@ -35,8 +35,8 @@ export async function GET() {
 
   if (!wallet) {
     return NextResponse.json(
-      { error: "Wallet not found" },
-      { status: 404 }
+      { wallet: "null" ,
+      status: "initializing" }
     );
   }
 
