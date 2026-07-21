@@ -1,6 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+
+import { MarketplaceHeader } from "./marketplace-header";
+import { MarketplaceToolbar } from "./marketplace-toolbar";
+import { AgentGrid } from "./agent-grid";
 
 type Agent = {
   id: string;
@@ -16,24 +20,30 @@ type Agent = {
 export function AgentsClient() {
   const [agents, setAgents] = useState<Agent[]>([]);
   const [loading, setLoading] = useState(true);
-  const [creatingTaskId, setCreatingTaskId] = useState<string | null>(null);
-  const [message, setMessage] = useState<string | null>(null);
+
+  const [search, setSearch] = useState("");
+
+  const [creatingTaskId, setCreatingTaskId] =
+    useState<string | null>(null);
+
+  const [message, setMessage] =
+    useState<string | null>(null);
 
   useEffect(() => {
-    async function load() {
+    async function loadAgents() {
       try {
         const res = await fetch("/api/agents");
         const data = await res.json();
 
         setAgents(data);
       } catch (err) {
-        console.error("Failed to load agents", err);
+        console.error(err);
       } finally {
         setLoading(false);
       }
     }
 
-    load();
+    loadAgents();
   }, []);
 
   async function hireAgent(agentId: string) {
@@ -53,78 +63,56 @@ export function AgentsClient() {
       });
 
       if (!res.ok) {
-        throw new Error("Failed to create task");
+        throw new Error("Failed");
       }
 
-      const data = await res.json();
+      await res.json();
 
-      console.log("Task created:", data);
-
-      setMessage("Task created successfully ✅");
-    } catch (err) {
-      console.error(err);
-      setMessage("Failed to create task ❌");
+      setMessage("✅ Worker hired successfully.");
+    } catch {
+      setMessage("❌ Failed to hire worker.");
     } finally {
       setCreatingTaskId(null);
     }
   }
 
+  const filteredAgents = useMemo(() => {
+    return agents.filter((agent) =>
+      agent.name
+        .toLowerCase()
+        .includes(search.toLowerCase())
+    );
+  }, [agents, search]);
+
   if (loading) {
-    return <div>Loading agents...</div>;
+    return (
+      <div className="p-8 text-zinc-400">
+        Loading marketplace...
+      </div>
+    );
   }
 
   return (
-    <div className="space-y-6">
-      <h2 className="text-xl font-semibold">Agents</h2>
+    <div className="min-h-screen bg-[#050505] p-8">
+
+      <MarketplaceHeader />
+
+      <MarketplaceToolbar
+        search={search}
+        onSearch={setSearch}
+      />
 
       {message && (
-        <div className="text-sm text-gray-600">
+        <div className="mb-6 rounded-xl border border-violet-700 bg-violet-900/20 p-4 text-sm text-violet-300">
           {message}
         </div>
       )}
 
-      <div className="grid gap-4">
-        {agents.map((agent) => (
-          <div
-            key={agent.id}
-            className="border rounded-lg p-4 space-y-2"
-          >
-            <div className="font-medium">
-              {agent.name}
-            </div>
-
-            <div className="text-sm text-gray-500">
-              {agent.type}
-            </div>
-
-            <div className="text-sm">
-              {agent.pricingModel === "task" ? (
-                <span>
-                  ${agent.taskPrice} per task
-                </span>
-              ) : (
-                <span>
-                  ${agent.hourlyRate} per hour
-                </span>
-              )}
-            </div>
-
-            <div className="text-sm text-gray-600">
-              {agent.description}
-            </div>
-
-            <button
-              onClick={() => hireAgent(agent.id)}
-              disabled={creatingTaskId === agent.id}
-              className="px-3 py-1 bg-black text-white rounded"
-            >
-              {creatingTaskId === agent.id
-                ? "Creating Task..."
-                : "Hire Agent"}
-            </button>
-          </div>
-        ))}
-      </div>
+      <AgentGrid
+        agents={filteredAgents}
+        creatingTaskId={creatingTaskId}
+        onHire={hireAgent}
+      />
     </div>
   );
 }

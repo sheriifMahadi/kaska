@@ -1,9 +1,10 @@
 import {
   LayoutDashboard,
-  Users,
-  CheckSquare,
+  Bot,
+  ListTodo,
   Wallet,
-  Settings,
+  ReceiptText,
+  User,
 } from "lucide-react";
 
 export const dashboardNav = [
@@ -13,23 +14,28 @@ export const dashboardNav = [
     icon: LayoutDashboard,
   },
   {
-    title: "Workers",
-    href: "/workers",
-    icon: Users,
+    title: "Marketplace",
+    href: "/agents",
+    icon: Bot,
   },
   {
     title: "Tasks",
     href: "/tasks",
-    icon: CheckSquare,
+    icon: ListTodo,
   },
   {
-    title: "Treasury",
-    href: "/treasury",
+    title: "Wallet",
+    href: "/wallet",
     icon: Wallet,
   },
   {
-    title: "Settings",
+    title: "Transactions",
+    href: "/transactions",
+    icon: ReceiptText,
+  },
+  {
+    title: "Profile",
     href: "/settings",
-    icon: Settings,
+    icon: User,
   },
 ];
