@@ -47,34 +47,43 @@ export function AgentsClient() {
   }, []);
 
   async function hireAgent(agentId: string) {
-    setCreatingTaskId(agentId);
-    setMessage(null);
+  setCreatingTaskId(agentId);
+  setMessage(null);
 
-    try {
-      const res = await fetch("/api/tasks", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          agentId,
-          input: "Test task: generate a sample AI response",
-        }),
-      });
+  try {
+    const res = await fetch("/api/user-agents", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        agentId,
+      }),
+    });
 
-      if (!res.ok) {
-        throw new Error("Failed");
-      }
+    const data = await res.json();
 
-      await res.json();
-
-      setMessage("✅ Worker hired successfully.");
-    } catch {
-      setMessage("❌ Failed to hire worker.");
-    } finally {
-      setCreatingTaskId(null);
+    if (!res.ok) {
+      throw new Error(data.error ?? "Failed to hire agent");
     }
+
+    setMessage("✅ Agent hired successfully.");
+
+    // Refresh the marketplace state after hiring
+    const agentsRes = await fetch("/api/agents");
+    const agentsData = await agentsRes.json();
+
+    setAgents(agentsData);
+  } catch (err) {
+    if (err instanceof Error) {
+      setMessage(`❌ ${err.message}`);
+    } else {
+      setMessage("❌ Failed to hire agent.");
+    }
+  } finally {
+    setCreatingTaskId(null);
   }
+}
 
   const filteredAgents = useMemo(() => {
     return agents.filter((agent) =>

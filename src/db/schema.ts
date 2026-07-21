@@ -6,6 +6,7 @@ import {
   index,
   numeric,
   boolean,
+  integer
 } from "drizzle-orm/pg-core";
 
 /* ---------------------------
@@ -116,6 +117,52 @@ export const agents = pgTable("agents", {
 
   createdAt: timestamp("created_at").defaultNow(),
 });
+
+export const userAgents = pgTable(
+  "user_agents",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, {
+        onDelete: "cascade",
+      }),
+
+    agentId: uuid("agent_id")
+      .notNull()
+      .references(() => agents.id, {
+        onDelete: "cascade",
+      }),
+
+    status: text("status")
+      .notNull()
+      .default("active"),
+    // active | paused | archived
+
+    budget: numeric("budget", {
+      precision: 10,
+      scale: 2,
+    }).default("0"),
+
+    completedTasks: text("completed_tasks")
+      .notNull()
+      .default("0"),
+
+    totalSpent: numeric("total_spent", {
+      precision: 10,
+      scale: 2,
+    }).default("0"),
+
+    createdAt: timestamp("created_at")
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => ({
+    userIdx: index("user_agent_user_idx").on(table.userId),
+    agentIdx: index("user_agent_agent_idx").on(table.agentId),
+  })
+);
 
 export const tasks = pgTable(
   "tasks",
