@@ -20,6 +20,7 @@
     "drizzle-orm": "^0.45.2",
     "lucide-react": "^1.17.0",
     "next": "16.2.7",
+    "openai": "^6.48.0",
     "pg": "^8.21.0",
     "postgres": "^3.4.9",
     "radix-ui": "^1.4.3",
