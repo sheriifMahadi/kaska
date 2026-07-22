@@ -1,36 +1,17 @@
-import {executeTask} from "../../core/execution/task-executor"
-import { runTask} from "../../core/execution/run-task"
+import { processQueue } from "./process-queue";
 
-/**
- * Queue abstraction layer (production-ready pattern)
- * Today: in-memory
- * Tomorrow: Redis / BullMQ / SQS
- */
+let processing = false;
 
-const queue: string[] = [];
-let isProcessing = false;
-
-export function enqueueTask(taskId: string) {
-  queue.push(taskId);
-  processQueue();
-}
-
-async function processQueue() {
-  if (isProcessing) return;
-
-  isProcessing = true;
-
-  while (queue.length > 0) {
-    const taskId = queue.shift();
-
-    if (!taskId) continue;
-
-    try {
-      await runTask(taskId);
-    } catch (err) {
-      console.error("[QUEUE EXECUTION ERROR]", err);
-    }
+export async function enqueueTask() {
+  if (processing) {
+    return;
   }
 
-  isProcessing = false;
+  processing = true;
+
+  try {
+    await processQueue();
+  } finally {
+    processing = false;
+  }
 }

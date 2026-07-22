@@ -31,8 +31,11 @@ export async function GET() {
     const hiredAgents = await db
       .select({
         userAgentId: userAgents.id,
-        hiredAt: userAgents.hiredAt,
+        createdAt: userAgents.createdAt,
         status: userAgents.status,
+        budget: userAgents.budget,
+        completedTasks: userAgents.completedTasks,
+        totalSpent: userAgents.totalSpent,
 
         agentId: agents.id,
         name: agents.name,
@@ -40,7 +43,7 @@ export async function GET() {
         type: agents.type,
         pricingModel: agents.pricingModel,
         taskPrice: agents.taskPrice,
-        hourlyRate: agents.hourlyRate,
+        hourlyRate: agents.hourlyRate
       })
       .from(userAgents)
       .innerJoin(
@@ -51,10 +54,13 @@ export async function GET() {
 
     return NextResponse.json(hiredAgents);
   } catch (error) {
-    console.error(error);
+    console.error("GET /api/user-agents:", error);
 
     return NextResponse.json(
-      { error: "Failed to fetch hired agents" },
+      { error: "Failed to fetch hired agents",
+        details: error instanceof Error ? error.message : String(error),
+
+      },
       { status: 500 }
     );
   }

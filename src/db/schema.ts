@@ -175,18 +175,30 @@ export const tasks = pgTable(
         onDelete: "cascade",
       }),
 
-    agentId: uuid("agent_id")
+    userAgentId: uuid("user_agent_id")
       .notNull()
-      .references(() => agents.id, {
+      .references(() => userAgents.id, {
         onDelete: "cascade",
       }),
 
-    input: text("input").notNull(),
+    title: text("title").notNull(),
+
+    prompt: text("prompt").notNull(),
+
+    priority: text("priority")
+      .notNull()
+      .default("normal"),
 
     status: text("status")
       .notNull()
       .default("queued"),
     // queued | running | completed | failed
+
+    startedAt: timestamp("started_at"),
+
+    completedAt: timestamp("completed_at"),
+
+    error: text("error"),
 
     createdAt: timestamp("created_at")
       .defaultNow()
@@ -194,7 +206,7 @@ export const tasks = pgTable(
   },
   (table) => ({
     userIdx: index("task_user_idx").on(table.userId),
-    agentIdx: index("task_agent_idx").on(table.agentId),
+    workerIdx: index("task_worker_idx").on(table.userAgentId),
   })
 );
 
@@ -210,6 +222,15 @@ export const taskOutputs = pgTable(
       }),
 
     output: text("output").notNull(),
+
+    model: text("model"),
+
+    tokens: numeric("tokens"),
+
+    cost: numeric("cost", {
+      precision: 10,
+      scale: 6,
+    }),
 
     createdAt: timestamp("created_at")
       .defaultNow()

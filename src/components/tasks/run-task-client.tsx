@@ -1,0 +1,62 @@
+"use client";
+
+import { useEffect, useState } from "react";
+
+import { TaskForm } from "./task-form";
+
+type Agent = {
+  userAgentId: string;
+  agentId: string;
+  name: string;
+  description: string | null;
+  type: string;
+  status: string;
+};
+
+type Props = {
+  userAgentId: string;
+};
+
+export function RunTaskClient({ userAgentId }: Props) {
+  const [agent, setAgent] = useState<Agent | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function loadAgent() {
+      const res = await fetch("/api/user-agents");
+
+      if (!res.ok) return;
+
+      const agents = await res.json();
+
+      const current = agents.find(
+        (a: Agent) => a.userAgentId === userAgentId
+      );
+
+      setAgent(current ?? null);
+      setLoading(false);
+    }
+
+    loadAgent();
+  }, [userAgentId]);
+
+  if (loading) {
+    return (
+      <div className="p-8 text-zinc-400">
+        Loading...
+      </div>
+    );
+  }
+
+  if (!agent) {
+    return (
+      <div className="p-8 text-red-400">
+        Agent not found.
+      </div>
+    );
+  }
+
+  return (
+    <TaskForm agent={agent} />
+  );
+}
