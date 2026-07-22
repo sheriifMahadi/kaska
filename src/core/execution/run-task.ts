@@ -9,7 +9,6 @@ import {
 } from "@/db/schema";
 
 import { OpenRouterProvider } from "./providers/openrouter-provider";
-import { enqueueTask } from "./queue";
 
 export async function runTask(taskId: string) {
   const [task] = await db

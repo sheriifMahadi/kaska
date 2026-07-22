@@ -9,7 +9,6 @@ import {
   userAgents,
 } from "@/db/schema";
 
-import { enqueueTask } from "@/core/execution/queue";
 
 /* --------------------------------------------------
    GET: Fetch User Tasks
@@ -155,7 +154,6 @@ export async function POST(req: Request) {
       .returning();
 
     // Send task to execution queue
-    await enqueueTask(task.id);
 
     return NextResponse.json(
       {
