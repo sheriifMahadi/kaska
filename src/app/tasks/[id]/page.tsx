@@ -1,5 +1,5 @@
 import DashboardLayout from "@/components/layout/dashboard-layout";
-import { RunTaskClient } from "@/components/tasks/run-task-client";
+import { TaskDetailsClient } from "@/components/tasks/task-details-client";
 
 type Props = {
   params: Promise<{
@@ -7,12 +7,14 @@ type Props = {
   }>;
 };
 
-export default async function RunTaskPage({ params }: Props) {
+export default async function TaskPage({
+  params,
+}: Props) {
   const { id } = await params;
 
   return (
     <DashboardLayout>
-      <RunTaskClient userAgentId={id} />
+      <TaskDetailsClient taskId={id} />
     </DashboardLayout>
   );
 }

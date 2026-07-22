@@ -87,7 +87,7 @@ export function TaskAgentCard({ agent }: Props) {
       <div className="mt-6 flex gap-3">
         <button
           onClick={() =>
-            router.push(`/tasks/${agent.userAgentId}`)
+            router.push(`/tasks/new?agent=${agent.userAgentId}`)
           }
           className="flex-1 rounded-lg bg-violet-600 px-4 py-2 font-medium text-white transition hover:bg-violet-500"
         >
