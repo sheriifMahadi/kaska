@@ -1,14 +1,23 @@
 "use client";
 
+import { useState } from "react";
+
 type Wallet = {
   address: string;
+  spendApproval: string;
 };
 
+type ModalType =
+  | "deposit"
+  | "withdraw"
+  | "approval"
+  | null;
+
 type Props = {
-  modal: "deposit" | "withdraw" | null;
+  modal: ModalType;
   wallet: Wallet;
   setModal: React.Dispatch<
-    React.SetStateAction<"deposit" | "withdraw" | null>
+    React.SetStateAction<ModalType>
   >;
 };
 
@@ -17,36 +26,57 @@ export default function WalletModal({
   wallet,
   setModal,
 }: Props) {
+  const [approvalAmount, setApprovalAmount] =
+    useState("");
+
   if (!modal) return null;
+
+  const title =
+    modal === "deposit"
+      ? "Deposit USDC"
+      : modal === "withdraw"
+      ? "Withdraw USDC"
+      : "Manage Spend Approval";
+
+  const description =
+    modal === "deposit"
+      ? "Fund your Kaska wallet."
+      : modal === "withdraw"
+      ? "Transfer funds from your Kaska wallet."
+      : "Control how much USDC Kaska is allowed to move into escrow.";
 
   return (
     <>
+      {/* Overlay */}
       <div
-        className="fixed inset-0 z-40"
+        className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm"
         onClick={() => setModal(null)}
       />
 
+      {/* Modal */}
       <div
         onClick={(e) => e.stopPropagation()}
-        className="fixed bottom-6 right-6 z-50 w-[420px] overflow-hidden rounded-2xl border border-yellow-500/50 bg-zinc-950/98 backdrop-blur-xl shadow-[0_30px_120px_rgba(0,0,0,.8)]"
+        className="fixed bottom-6 right-6 z-50 w-[420px] overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-950 shadow-[0_30px_120px_rgba(0,0,0,.8)]"
       >
+        {/* Header */}
         <div className="border-b border-zinc-800 px-5 py-4">
 
           <h2 className="text-lg font-semibold text-white">
-            {modal === "deposit"
-              ? "Deposit USDC"
-              : "Withdraw USDC"}
+            {title}
           </h2>
 
           <p className="mt-1 text-xs text-zinc-500">
-            {modal === "deposit"
-              ? "Fund your Kaska wallet"
-              : "Transfer funds from your Kaska wallet"}
+            {description}
           </p>
 
         </div>
 
+        {/* Body */}
         <div className="p-5">
+
+          {/* -------------------- */}
+          {/* Deposit             */}
+          {/* -------------------- */}
 
           {modal === "deposit" && (
             <div className="space-y-5">
@@ -59,7 +89,7 @@ export default function WalletModal({
                 to the address below.
               </p>
 
-              <code className="block rounded-xl bg-black p-4 break-all font-mono text-xs text-green-400">
+              <code className="block break-all rounded-xl bg-black p-4 font-mono text-xs text-green-400">
                 {wallet.address}
               </code>
 
@@ -69,13 +99,17 @@ export default function WalletModal({
                     wallet.address
                   )
                 }
-                className="w-full rounded-xl bg-violet-600 py-3 font-medium text-white hover:bg-violet-500"
+                className="w-full rounded-xl bg-violet-600 py-3 font-medium text-white transition hover:bg-violet-500"
               >
                 Copy Address
               </button>
 
             </div>
           )}
+
+          {/* -------------------- */}
+          {/* Withdraw            */}
+          {/* -------------------- */}
 
           {modal === "withdraw" && (
             <div className="space-y-5">
@@ -89,7 +123,7 @@ export default function WalletModal({
                 <input
                   type="text"
                   placeholder="0x..."
-                  className="w-full rounded-xl border border-zinc-700 bg-zinc-900 p-3 text-white outline-none focus:border-yellow-500"
+                  className="w-full rounded-xl border border-zinc-700 bg-zinc-900 p-3 text-white outline-none transition focus:border-violet-500"
                 />
 
               </div>
@@ -103,13 +137,71 @@ export default function WalletModal({
                 <input
                   type="number"
                   placeholder="0.00"
-                  className="w-full rounded-xl border border-zinc-700 bg-zinc-900 p-3 text-white outline-none focus:border-yellow-500"
+                  className="w-full rounded-xl border border-zinc-700 bg-zinc-900 p-3 text-white outline-none transition focus:border-violet-500"
                 />
 
               </div>
 
-              <button className="w-full rounded-xl bg-violet-600 py-3 font-medium text-white hover:bg-violet-500">
+              <button className="w-full rounded-xl bg-violet-600 py-3 font-medium text-white transition hover:bg-violet-500">
                 Send
+              </button>
+
+            </div>
+          )}
+
+          {/* -------------------- */}
+          {/* Spend Approval      */}
+          {/* -------------------- */}
+
+          {modal === "approval" && (
+            <div className="space-y-5">
+
+              <div className="rounded-xl border border-zinc-800 bg-zinc-900 p-4">
+
+                <p className="text-xs uppercase tracking-wide text-zinc-500">
+                  Current Approval
+                </p>
+
+                <p className="mt-2 text-3xl font-bold text-white">
+                  {wallet.spendApproval} USDC
+                </p>
+
+                <p className="mt-2 text-sm text-zinc-500">
+                  This is the maximum amount the escrow
+                  contract can transfer from your wallet
+                  when creating tasks.
+                </p>
+
+              </div>
+
+              <div>
+
+                <label className="mb-2 block text-sm text-zinc-400">
+                  New Approval Amount
+                </label>
+
+                <input
+                  type="number"
+                  placeholder="100"
+                  value={approvalAmount}
+                  onChange={(e) =>
+                    setApprovalAmount(e.target.value)
+                  }
+                  className="w-full rounded-xl border border-zinc-700 bg-zinc-900 p-3 text-white outline-none transition focus:border-violet-500"
+                />
+
+              </div>
+
+              <button
+                className="w-full rounded-xl bg-violet-600 py-3 font-medium text-white transition hover:bg-violet-500"
+              >
+                Update Approval
+              </button>
+
+              <button
+                className="w-full rounded-xl border border-red-500/40 py-3 font-medium text-red-400 transition hover:border-red-400 hover:bg-red-500/10"
+              >
+                Revoke Approval
               </button>
 
             </div>

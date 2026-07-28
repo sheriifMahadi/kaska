@@ -1,9 +1,16 @@
 import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 import { eq } from "drizzle-orm";
+import { formatUnits } from "viem";
 
 import { db } from "@/lib/db";
 import { circle } from "@/lib/circle";
+import { publicClient } from "@/lib/blockchain";
+import { usdcAbi } from "@/lib/abi/usdc";
+import {
+  ARC_TESTNET_USDC,
+  ESCROW_ADDRESS,
+} from "@/lib/arc";
 import { users, wallets } from "@/db/schema";
 
 export async function GET() {
@@ -15,6 +22,10 @@ export async function GET() {
       { status: 401 }
     );
   }
+
+  // =========================
+  // GET USER
+  // =========================
 
   const user = await db
     .select()
@@ -29,6 +40,10 @@ export async function GET() {
     );
   }
 
+  // =========================
+  // GET WALLET
+  // =========================
+
   const wallet = await db
     .select()
     .from(wallets)
@@ -42,24 +57,61 @@ export async function GET() {
     );
   }
 
-  const balanceResponse = await circle.getWalletTokenBalance({
-    id: wallet.circleWalletId,
-  });
+  // =========================
+  // GET CIRCLE BALANCE
+  // =========================
 
-  const usdc = balanceResponse.data?.tokenBalances.find(
-    (tokenBalance) =>
-      tokenBalance.token.symbol === "USDC" &&
-      tokenBalance.token.standard === "ERC20"
-  );
+  const balanceResponse =
+    await circle.getWalletTokenBalance({
+      id: wallet.circleWalletId,
+    });
+
+  const usdc =
+    balanceResponse.data?.tokenBalances.find(
+      (tokenBalance) =>
+        tokenBalance.token.symbol === "USDC" &&
+        tokenBalance.token.standard === "ERC20"
+    );
 
   const totalBalance = usdc?.amount ?? "0";
+
+  // =========================
+  // GET ERC20 ALLOWANCE
+  // =========================
+
+  const allowance = await publicClient.readContract({
+    address: ARC_TESTNET_USDC as `0x${string}`,
+    abi: usdcAbi,
+    functionName: "allowance",
+    args: [
+      wallet.address as `0x${string}`,
+      ESCROW_ADDRESS as `0x${string}`,
+    ],
+  });
+
+  const spendApproval = formatUnits(
+    allowance,
+    6 // USDC decimals
+  );
+
+  // =========================
+  // RESPONSE
+  // =========================
 
   return NextResponse.json({
     address: wallet.address,
     walletId: wallet.circleWalletId,
-    totalBalance,
-    availableBalance: totalBalance,
-    lockedBalance: "0",
+
     currency: "USDC",
+
+    totalBalance,
+
+    availableBalance: totalBalance,
+
+    // Will come from the escrow contract later
+    lockedBalance: "0",
+
+    // Current approved spending limit
+    spendApproval,
   });
 }

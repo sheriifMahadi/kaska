@@ -12,14 +12,16 @@ type Wallet = {
   totalBalance: string;
   availableBalance: string;
   lockedBalance: string;
+  spendApproval: string;
   currency: string;
 };
 
 export default function WalletClient() {
   const [wallet, setWallet] = useState<Wallet | null>(null);
   const [loading, setLoading] = useState(true);
+
   const [modal, setModal] = useState<
-    "deposit" | "withdraw" | null
+    "deposit" | "withdraw" | "approval" | null
   >(null);
 
   async function loadWallet() {
@@ -31,6 +33,7 @@ export default function WalletClient() {
       }
 
       const data = await res.json();
+
       setWallet(data);
     } catch (err) {
       console.error(err);
@@ -66,9 +69,7 @@ export default function WalletClient() {
   return (
     <>
       <div className="space-y-8">
-
         <div>
-
           <h1 className="text-3xl font-bold text-white">
             Wallet
           </h1>
@@ -76,11 +77,9 @@ export default function WalletClient() {
           <p className="mt-2 text-zinc-400">
             Your Arc treasury wallet.
           </p>
-
         </div>
 
         <div className="rounded-2xl border border-zinc-800 bg-zinc-950 p-6">
-
           <div className="grid gap-4 md:grid-cols-3">
 
             <WalletBalanceCard
@@ -89,14 +88,19 @@ export default function WalletClient() {
             />
 
             <WalletBalanceCard
-              title="Locked"
+              title="Escrow"
               value={wallet.lockedBalance}
             />
 
-            <WalletBalanceCard
-              title="Total"
-              value={wallet.totalBalance}
-            />
+            <div
+              onClick={() => setModal("approval")}
+              className="cursor-pointer transition-transform hover:scale-[1.02]"
+            >
+              <WalletBalanceCard
+                title="Spend Approval"
+                value={wallet.spendApproval}
+              />
+            </div>
 
           </div>
 
@@ -117,11 +121,9 @@ export default function WalletClient() {
             </button>
 
           </div>
-
         </div>
 
         <WalletTransactions />
-
       </div>
 
       <WalletModal

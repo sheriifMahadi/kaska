@@ -6,7 +6,8 @@ import {
   index,
   numeric,
   boolean,
-  integer
+  integer,
+  decimal
 } from "drizzle-orm/pg-core";
 
 /* ---------------------------
@@ -240,3 +241,33 @@ export const taskOutputs = pgTable(
     taskIdx: index("task_output_task_idx").on(table.taskId),
   })
 );
+
+export const walletLocks = pgTable("wallet_locks", {
+  id: uuid("id").defaultRandom().primaryKey(),
+
+  walletId: uuid("wallet_id")
+    .notNull()
+    .references(() => wallets.id, {
+      onDelete: "cascade",
+    }),
+
+  taskId: uuid("task_id"),
+
+  amount: decimal("amount", {
+    precision: 18,
+    scale: 6,
+  }).notNull(),
+
+  status: text("status")
+    .$type<"ACTIVE" | "RELEASED" | "CHARGED" | "CANCELLED">()
+    .notNull()
+    .default("ACTIVE"),
+
+  createdAt: timestamp("created_at")
+    .defaultNow()
+    .notNull(),
+
+  expiresAt: timestamp("expires_at"),
+
+  releasedAt: timestamp("released_at"),
+});
