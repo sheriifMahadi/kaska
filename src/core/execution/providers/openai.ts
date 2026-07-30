@@ -1,24 +1,24 @@
 import { openai } from "@/lib/openai";
 import {
   AIProvider,
+  ExecutionRequest,
   ExecutionResult,
-} from "./provider";
+} from "./ai-provider";
 
 export class OpenAIProvider implements AIProvider {
   async execute(
-    systemPrompt: string,
-    userPrompt: string
+    request: ExecutionRequest
   ): Promise<ExecutionResult> {
     const response = await openai.responses.create({
       model: "gpt-4.1-mini",
       input: [
         {
           role: "system",
-          content: systemPrompt,
+          content: request.systemPrompt,
         },
         {
           role: "user",
-          content: userPrompt,
+          content: request.userPrompt,
         },
       ],
     });
@@ -30,7 +30,7 @@ export class OpenAIProvider implements AIProvider {
       model: response.model,
       tokens:
         response.usage?.total_tokens ?? 0,
-      cost: 0,
+      cost: "0",
     };
   }
 }

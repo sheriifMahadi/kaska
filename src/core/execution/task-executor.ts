@@ -35,7 +35,7 @@ export async function executeTask(taskId: string) {
     await db
       .update(tasks)
       .set({
-        status: "completed",
+        status: "execution_succeeded",
         completedAt: new Date(),
       })
       .where(eq(tasks.id, taskId));
@@ -43,7 +43,7 @@ export async function executeTask(taskId: string) {
     await db
       .update(tasks)
       .set({
-        status: "failed",
+        status: "execution_failed",
         error:
           error instanceof Error
             ? error.message

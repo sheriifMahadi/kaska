@@ -11,8 +11,15 @@ type Task = {
 const colors: Record<string, string> = {
   queued: "bg-yellow-500",
   running: "bg-blue-500",
-  completed: "bg-green-500",
-  failed: "bg-red-500",
+  execution_succeeded: "bg-green-500",
+  charged: "bg-green-500",
+  execution_failed: "bg-red-500",
+  refunded: "bg-zinc-500",
+  escrow_pending: "bg-amber-500",
+  funds_locked: "bg-violet-500",
+  charge_pending: "bg-amber-500",
+  refund_pending: "bg-amber-500",
+  manual_review: "bg-red-700",
 };
 
 export function TaskList({
@@ -54,7 +61,7 @@ export function TaskList({
 
               <span
                 className={`rounded-full px-3 py-1 text-xs text-white ${
-                  colors[task.status]
+                  colors[task.status] ?? "bg-zinc-600"
                 }`}
               >
                 {task.status}

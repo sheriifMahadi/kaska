@@ -1,8 +1,9 @@
 import {
   initiateDeveloperControlledWalletsClient,
 } from "@circle-fin/developer-controlled-wallets";
+import { serverConfig } from "@/platform/config/server";
 
 export const circle = initiateDeveloperControlledWalletsClient({
-  apiKey: process.env.CIRCLE_API_KEY!,
-  entitySecret: process.env.CIRCLE_ENTITY_SECRET!,
+  apiKey: serverConfig.circleApiKey,
+  entitySecret: serverConfig.circleEntitySecret,
 });

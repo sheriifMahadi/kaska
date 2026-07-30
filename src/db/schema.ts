@@ -9,6 +9,10 @@ import {
   integer,
   decimal
 } from "drizzle-orm/pg-core";
+import type {
+  TaskPriority,
+  TaskStatus,
+} from "@/modules/tasks/domain/task-status";
 
 /* ---------------------------
    USERS
@@ -164,7 +168,6 @@ export const userAgents = pgTable(
     agentIdx: index("user_agent_agent_idx").on(table.agentId),
   })
 );
-
 export const tasks = pgTable(
   "tasks",
   {
@@ -182,15 +185,20 @@ export const tasks = pgTable(
         onDelete: "cascade",
       }),
 
+    // On-chain task ID used by the escrow contract
+    escrowTaskId: integer("escrow_task_id").unique(),
+
     title: text("title").notNull(),
 
     prompt: text("prompt").notNull(),
 
     priority: text("priority")
+      .$type<TaskPriority>()
       .notNull()
       .default("normal"),
 
     status: text("status")
+      .$type<TaskStatus>()
       .notNull()
       .default("queued"),
     // queued | running | completed | failed
@@ -208,6 +216,10 @@ export const tasks = pgTable(
   (table) => ({
     userIdx: index("task_user_idx").on(table.userId),
     workerIdx: index("task_worker_idx").on(table.userAgentId),
+
+    escrowTaskIdx: index("task_escrow_task_idx").on(
+      table.escrowTaskId
+    ),
   })
 );
 
@@ -251,7 +263,16 @@ export const walletLocks = pgTable("wallet_locks", {
       onDelete: "cascade",
     }),
 
-  taskId: uuid("task_id"),
+  taskId: uuid("task_id")
+    .references(() => tasks.id, {
+      onDelete: "cascade",
+    }),
+
+  // On-chain escrow ID
+  escrowTaskId: integer("escrow_task_id").notNull(),
+
+  // Transaction that created the lock
+  txHash: text("tx_hash"),
 
   amount: decimal("amount", {
     precision: 18,

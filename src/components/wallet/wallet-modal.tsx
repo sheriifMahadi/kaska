@@ -31,6 +31,28 @@ export default function WalletModal({
 
   if (!modal) return null;
 
+  async function handleApprove() {
+    console.log(
+      "Approve:",
+      approvalAmount,
+      "USDC"
+    );
+
+    // Next step:
+    // POST /api/wallet/approve
+
+    setModal(null);
+  }
+
+  async function handleRevoke() {
+    console.log("Revoke approval");
+
+    // Next step:
+    // POST /api/wallet/revoke
+
+    setModal(null);
+  }
+
   const title =
     modal === "deposit"
       ? "Deposit USDC"
@@ -47,20 +69,16 @@ export default function WalletModal({
 
   return (
     <>
-      {/* Overlay */}
       <div
         className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm"
         onClick={() => setModal(null)}
       />
 
-      {/* Modal */}
       <div
         onClick={(e) => e.stopPropagation()}
         className="fixed bottom-6 right-6 z-50 w-[420px] overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-950 shadow-[0_30px_120px_rgba(0,0,0,.8)]"
       >
-        {/* Header */}
         <div className="border-b border-zinc-800 px-5 py-4">
-
           <h2 className="text-lg font-semibold text-white">
             {title}
           </h2>
@@ -68,19 +86,11 @@ export default function WalletModal({
           <p className="mt-1 text-xs text-zinc-500">
             {description}
           </p>
-
         </div>
 
-        {/* Body */}
         <div className="p-5">
-
-          {/* -------------------- */}
-          {/* Deposit             */}
-          {/* -------------------- */}
-
           {modal === "deposit" && (
             <div className="space-y-5">
-
               <p className="text-sm text-zinc-400">
                 Send{" "}
                 <span className="font-medium text-white">
@@ -103,19 +113,12 @@ export default function WalletModal({
               >
                 Copy Address
               </button>
-
             </div>
           )}
 
-          {/* -------------------- */}
-          {/* Withdraw            */}
-          {/* -------------------- */}
-
           {modal === "withdraw" && (
             <div className="space-y-5">
-
               <div>
-
                 <label className="mb-2 block text-sm text-zinc-400">
                   Recipient Address
                 </label>
@@ -125,11 +128,9 @@ export default function WalletModal({
                   placeholder="0x..."
                   className="w-full rounded-xl border border-zinc-700 bg-zinc-900 p-3 text-white outline-none transition focus:border-violet-500"
                 />
-
               </div>
 
               <div>
-
                 <label className="mb-2 block text-sm text-zinc-400">
                   Amount (USDC)
                 </label>
@@ -139,25 +140,17 @@ export default function WalletModal({
                   placeholder="0.00"
                   className="w-full rounded-xl border border-zinc-700 bg-zinc-900 p-3 text-white outline-none transition focus:border-violet-500"
                 />
-
               </div>
 
               <button className="w-full rounded-xl bg-violet-600 py-3 font-medium text-white transition hover:bg-violet-500">
                 Send
               </button>
-
             </div>
           )}
 
-          {/* -------------------- */}
-          {/* Spend Approval      */}
-          {/* -------------------- */}
-
           {modal === "approval" && (
             <div className="space-y-5">
-
               <div className="rounded-xl border border-zinc-800 bg-zinc-900 p-4">
-
                 <p className="text-xs uppercase tracking-wide text-zinc-500">
                   Current Approval
                 </p>
@@ -171,11 +164,9 @@ export default function WalletModal({
                   contract can transfer from your wallet
                   when creating tasks.
                 </p>
-
               </div>
 
               <div>
-
                 <label className="mb-2 block text-sm text-zinc-400">
                   New Approval Amount
                 </label>
@@ -189,24 +180,23 @@ export default function WalletModal({
                   }
                   className="w-full rounded-xl border border-zinc-700 bg-zinc-900 p-3 text-white outline-none transition focus:border-violet-500"
                 />
-
               </div>
 
               <button
+                onClick={handleApprove}
                 className="w-full rounded-xl bg-violet-600 py-3 font-medium text-white transition hover:bg-violet-500"
               >
                 Update Approval
               </button>
 
               <button
+                onClick={handleRevoke}
                 className="w-full rounded-xl border border-red-500/40 py-3 font-medium text-red-400 transition hover:border-red-400 hover:bg-red-500/10"
               >
                 Revoke Approval
               </button>
-
             </div>
           )}
-
         </div>
       </div>
     </>

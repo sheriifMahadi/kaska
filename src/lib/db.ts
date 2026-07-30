@@ -1,7 +1,8 @@
 import postgres from "postgres";
 import { drizzle } from "drizzle-orm/postgres-js";
+import { serverConfig } from "@/platform/config/server";
 
-const client = postgres(process.env.DATABASE_URL!, {
+const client = postgres(serverConfig.databaseUrl, {
   ssl: "require",
   max: 10,
   idle_timeout: 20,
@@ -9,3 +10,7 @@ const client = postgres(process.env.DATABASE_URL!, {
 });
 
 export const db = drizzle(client);
+
+export function closeDatabase() {
+  return client.end();
+}

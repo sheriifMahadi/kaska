@@ -12,7 +12,9 @@ let started = false;
 // Prevent scheduling the same task twice
 const activeTasks = new Set<string>();
 
-export async function startWorker() {
+export async function startWorker(
+  signal?: AbortSignal
+) {
   if (started) {
     return;
   }
@@ -21,15 +23,18 @@ export async function startWorker() {
 
   console.log("🚀 Kaska worker started");
 
-  while (true) {
+  while (!signal?.aborted) {
     try {
       await processQueue();
     } catch (error) {
       console.error("Worker error:", error);
     }
 
-    await sleep(POLL_INTERVAL);
+    await sleep(POLL_INTERVAL, signal);
   }
+
+  started = false;
+  console.log("Kaska worker stopped");
 }
 
 async function processQueue() {
@@ -91,6 +96,17 @@ async function processQueue() {
   }
 }
 
-function sleep(ms: number) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
+function sleep(ms: number, signal?: AbortSignal) {
+  return new Promise<void>((resolve) => {
+    const timeout = setTimeout(resolve, ms);
+
+    signal?.addEventListener(
+      "abort",
+      () => {
+        clearTimeout(timeout);
+        resolve();
+      },
+      { once: true }
+    );
+  });
 }

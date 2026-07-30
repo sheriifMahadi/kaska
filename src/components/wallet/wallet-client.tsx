@@ -43,11 +43,13 @@ export default function WalletClient() {
   }
 
   useEffect(() => {
-    loadWallet();
-
+    const initialLoad = window.setTimeout(loadWallet, 0);
     const interval = setInterval(loadWallet, 10000);
 
-    return () => clearInterval(interval);
+    return () => {
+      window.clearTimeout(initialLoad);
+      clearInterval(interval);
+    };
   }, []);
 
   if (loading) {

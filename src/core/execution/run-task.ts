@@ -9,6 +9,7 @@ import {
 } from "@/db/schema";
 
 import { OpenRouterProvider } from "./providers/openrouter-provider";
+import { buildSystemPrompt } from "./prompts/build-system-prompt";
 
 export async function runTask(taskId: string) {
   const [task] = await db
@@ -38,33 +39,21 @@ export async function runTask(taskId: string) {
     throw new Error("Agent not found");
   }
 
-  const systemPrompt = `
-You are ${agent.name}.
-
-Role:
-${agent.description}
-
-Always behave like this AI worker.
-`;
+  const systemPrompt = buildSystemPrompt(agent);
 
   const provider = new OpenRouterProvider();
 
-  const result = await provider.execute(`
-${systemPrompt}
-
-Task:
-${task.title}
-
-Instructions:
-${task.prompt}
-`);
+  const result = await provider.execute({
+    systemPrompt,
+    userPrompt: `Task: ${task.title}\n\nInstructions:\n${task.prompt}`,
+  });
 
   await db.insert(taskOutputs).values({
     taskId,
     output: result.output,
-    model: result.model ?? "openrouter",
-    tokens: result.tokens?.toString() ?? "0",
-    cost: "0",
+    model: result.model,
+    tokens: result.tokens.toString(),
+    cost: result.cost,
   });
 
   return result.output;

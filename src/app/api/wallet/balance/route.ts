@@ -5,12 +5,12 @@ import { formatUnits } from "viem";
 
 import { db } from "@/lib/db";
 import { circle } from "@/lib/circle";
-import { publicClient } from "@/lib/blockchain";
 import { usdcAbi } from "@/lib/abi/usdc";
 import {
   ARC_TESTNET_USDC,
   ESCROW_ADDRESS,
-} from "@/lib/arc";
+  publicClient,
+} from "@/platform/blockchain/arc";
 import { users, wallets } from "@/db/schema";
 
 export async function GET() {
@@ -67,7 +67,7 @@ export async function GET() {
     });
 
   const usdc =
-    balanceResponse.data?.tokenBalances.find(
+    balanceResponse.data?.tokenBalances?.find(
       (tokenBalance) =>
         tokenBalance.token.symbol === "USDC" &&
         tokenBalance.token.standard === "ERC20"

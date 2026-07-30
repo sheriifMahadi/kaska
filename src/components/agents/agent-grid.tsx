@@ -1,7 +1,8 @@
 import { AgentCard } from "./agent-card";
+import type { Agent } from "./agent-card";
 
 interface Props {
-  agents: any[];
+  agents: Agent[];
   creatingTaskId: string | null;
   onHire: (id: string) => void;
 }

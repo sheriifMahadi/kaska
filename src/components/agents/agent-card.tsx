@@ -1,6 +1,6 @@
 "use client";
 
-type Agent = {
+export type Agent = {
   id: string;
   name: string;
   description: string | null;

@@ -1,18 +1,30 @@
 import OpenAI from "openai";
+import {
+  AIProvider,
+  ExecutionRequest,
+  ExecutionResult,
+} from "./ai-provider";
+import { serverConfig } from "@/platform/config/server";
 
 const client = new OpenAI({
-  apiKey: process.env.HEURIST_API_KEY,
+  apiKey: serverConfig.heuristApiKey,
   baseURL: "https://llm-gateway.heurist.xyz/v1",
 });
 
-export class HeuristProvider {
-  async execute(prompt: string) {
+export class HeuristProvider implements AIProvider {
+  async execute(
+    request: ExecutionRequest
+  ): Promise<ExecutionResult> {
     const response = await client.chat.completions.create({
       model: "meta-llama/llama-3-70b-instruct",
       messages: [
         {
+          role: "system",
+          content: request.systemPrompt,
+        },
+        {
           role: "user",
-          content: prompt,
+          content: request.userPrompt,
         },
       ],
       temperature: 0.7,
@@ -25,6 +37,7 @@ export class HeuristProvider {
       model: response.model,
       tokens:
         response.usage?.total_tokens ?? 0,
+      cost: "0",
     };
   }
 }

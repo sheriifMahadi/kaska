@@ -1,36 +1,79 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Kaska Web
 
-## Getting Started
+Kaska is an AI workforce application where users employ agents for one-time or
+scheduled work and pay for each execution with USDC on Arc.
 
-First, run the development server:
+## Current baseline
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+The repository currently contains:
+
+- Clerk authentication and user synchronization;
+- Circle developer-controlled wallet provisioning;
+- an agent catalog and employment records;
+- task persistence and a polling execution worker;
+- OpenRouter, OpenAI, and Heurist provider adapters;
+- Arc wallet balance and withdrawal integration;
+- an in-progress per-task escrow integration;
+- the selected dashboard, workforce, task, and wallet UI.
+
+The paid-task flow is not yet production-ready. In particular, the current
+contract authorization and settlement lifecycle will be completed in later
+phases. See [docs/architecture.md](docs/architecture.md).
+
+## Requirements
+
+- Node.js 20 or newer
+- PostgreSQL
+- Clerk application and webhook
+- Circle developer-controlled-wallet credentials
+- Arc testnet RPC and USDC/escrow addresses
+- At least one configured AI provider
+- Foundry for contract development
+
+## Configuration
+
+Create `.env.local` for the web process:
+
+```dotenv
+NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=
+CLERK_SECRET_KEY=
+CLERK_WEBHOOK_SECRET=
+DATABASE_URL=
+CIRCLE_API_KEY=
+CIRCLE_ENTITY_SECRET=
+NEXT_PUBLIC_ARC_RPC_URL=
+USDC_CONTRACT=
+ESCROW_ADDRESS=
+OPENROUTER_API_KEY=
+OPENAI_API_KEY=
+HEURIST_API_KEY=
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Never commit environment files, Circle recovery material, or private keys.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Commands
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+npm run dev        # Next.js development server
+npm run worker     # standalone task worker
+npm run typecheck
+npm run lint
+npm test
+npm run build
+npm run check      # all web validation
+```
 
-## Learn More
+The worker is intentionally separate from Next.js. In local development, run
+the web server and worker in different terminals.
 
-To learn more about Next.js, take a look at the following resources:
+## Database
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+The Drizzle schema is in `src/db/schema.ts`, and migrations are in `drizzle/`.
+Migrations must be reviewed before applying them to a database containing
+existing data.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Architecture
 
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- [Architecture and invariants](docs/architecture.md)
+- [Recurring work decision](docs/decisions/0001-recurring-work.md)
+- [Wallet custody decision](docs/decisions/0002-wallet-custody.md)

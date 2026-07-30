@@ -73,7 +73,9 @@ export function TasksClient() {
   }
 
   useEffect(() => {
-    loadData();
+    const initialLoad = window.setTimeout(loadData, 0);
+
+    return () => window.clearTimeout(initialLoad);
   }, []);
 
   if (loading) {

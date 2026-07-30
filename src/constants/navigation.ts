@@ -4,7 +4,6 @@ import {
   ListTodo,
   Wallet,
   ReceiptText,
-  User,
 } from "lucide-react";
 
 export const dashboardNav = [
@@ -32,10 +31,5 @@ export const dashboardNav = [
     title: "Transactions",
     href: "/transactions",
     icon: ReceiptText,
-  },
-  {
-    title: "Profile",
-    href: "/settings",
-    icon: User,
   },
 ];

@@ -4,7 +4,10 @@ import { eq } from "drizzle-orm";
 
 import { db } from "@/lib/db";
 import { circle } from "@/lib/circle";
-import { ARC_TESTNET, ARC_TESTNET_USDC } from "@/lib/arc";
+import {
+  ARC_TESTNET,
+  ARC_TESTNET_USDC,
+} from "@/platform/blockchain/arc";
 
 import {
   users,
@@ -53,6 +56,13 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(
       { error: "Wallet not found" },
       { status: 404 }
+    );
+  }
+
+  if (!wallet.address) {
+    return NextResponse.json(
+      { error: "Wallet is not active" },
+      { status: 409 }
     );
   }
 
