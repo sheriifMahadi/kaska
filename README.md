@@ -22,7 +22,7 @@ phases. See [docs/architecture.md](docs/architecture.md).
 
 ## Requirements
 
-- Node.js 20 or newer
+- Node.js 20.9 or newer (`nvm use` reads the included `.nvmrc`)
 - PostgreSQL
 - Clerk application and webhook
 - Circle developer-controlled-wallet credentials

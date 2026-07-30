@@ -14,11 +14,13 @@ import {
 } from "@/db/schema";
 import { db } from "@/lib/db";
 import { escrowAbi } from "@/lib/abi/kaskaEscrow";
-import { circle } from "@/lib/circle";
 import {
   ESCROW_ADDRESS,
-  publicClient,
 } from "@/platform/blockchain/arc";
+import { sendWalletTransaction } from
+  "@/platform/circle/send-wallet-transaction";
+import { ensureEscrowAllowance } from
+  "@/modules/payments/application/ensure-escrow-allowance";
 import {
   forbidden,
   invalidInput,
@@ -122,62 +124,40 @@ export async function createPaidTask(
     functionName: "createTaskEscrow",
     args: [
       BigInt(escrowTaskId),
-      wallet.address,
       price.microUsdc,
     ],
   });
 
-  const nonce = await publicClient.getTransactionCount({
-    address: wallet.address,
-  });
-  const gas = await publicClient.estimateGas({
-    account: wallet.address,
-    to: ESCROW_ADDRESS as `0x${string}`,
-    data: calldata,
-  });
-  const fees = await publicClient.estimateFeesPerGas();
+  let txHash: `0x${string}`;
 
-  if (
-    fees.maxFeePerGas === undefined ||
-    fees.maxPriorityFeePerGas === undefined
-  ) {
-    throw new Error("Arc RPC did not return EIP-1559 fees");
-  }
-
-  const transaction = {
-    chainId: publicClient.chain.id,
-    nonce: nonce.toString(),
-    to: ESCROW_ADDRESS,
-    value: "0",
-    gas: gas.toString(),
-    maxFeePerGas: fees.maxFeePerGas.toString(),
-    maxPriorityFeePerGas:
-      fees.maxPriorityFeePerGas.toString(),
-    data: calldata,
-  };
-
-  const signed = await circle.signTransaction({
-    walletId: wallet.circleWalletId,
-    transaction: JSON.stringify(transaction),
-  });
-
-  if (!signed.data?.signedTransaction) {
-    throw new Error(
-      "Circle did not return a signed transaction"
-    );
-  }
-
-  const txHash = await publicClient.sendRawTransaction({
-    serializedTransaction:
-      signed.data.signedTransaction as `0x${string}`,
-  });
-  const receipt =
-    await publicClient.waitForTransactionReceipt({
-      hash: txHash,
+  try {
+    await ensureEscrowAllowance({
+      walletId: wallet.circleWalletId,
+      walletAddress: wallet.address,
+      amount: price.microUsdc,
     });
 
-  if (receipt.status !== "success") {
-    throw new Error("Escrow transaction failed");
+    const transaction = await sendWalletTransaction({
+      walletId: wallet.circleWalletId,
+      account: wallet.address,
+      to: ESCROW_ADDRESS as `0x${string}`,
+      data: calldata,
+    });
+
+    txHash = transaction.hash;
+  } catch (error) {
+    await db
+      .update(tasks)
+      .set({
+        status: "escrow_failed",
+        error:
+          error instanceof Error
+            ? error.message
+            : "Escrow transaction failed",
+      })
+      .where(eq(tasks.id, task.id));
+
+    throw error;
   }
 
   await db.transaction(async (transactionDb) => {
@@ -208,4 +188,3 @@ export async function createPaidTask(
     },
   };
 }
-

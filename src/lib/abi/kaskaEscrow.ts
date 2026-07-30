@@ -9,10 +9,6 @@ export const escrowAbi = [
         type: "uint256",
       },
       {
-        name: "client",
-        type: "address",
-      },
-      {
         name: "amount",
         type: "uint256",
       },
