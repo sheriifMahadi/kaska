@@ -1,17 +1,10 @@
 import "server-only";
 
 import { and, eq, sql } from "drizzle-orm";
-import { formatUnits, type Address } from "viem";
 
 import { walletLocks } from "@/db/schema";
-import { usdcAbi } from "@/lib/abi/usdc";
 import { circle } from "@/lib/circle";
 import { db } from "@/lib/db";
-import {
-  ARC_TESTNET_USDC,
-  ESCROW_ADDRESS,
-  publicClient,
-} from "@/platform/blockchain/arc";
 import {
   formatUsdc,
   parseUsdc,
@@ -22,24 +15,16 @@ import { calculateWalletBalance } from
 export type GetWalletBalanceInput = {
   walletId: string;
   circleWalletId: string;
-  walletAddress: Address;
 };
 
 export async function getWalletBalance({
   walletId,
   circleWalletId,
-  walletAddress,
 }: GetWalletBalanceInput) {
-  const [circleBalance, spendApprovalMicroUsdc, committedResult] =
+  const [circleBalance, committedResult] =
     await Promise.all([
       circle.getWalletTokenBalance({
         id: circleWalletId,
-      }),
-      publicClient.readContract({
-        address: ARC_TESTNET_USDC as Address,
-        abi: usdcAbi,
-        functionName: "allowance",
-        args: [walletAddress, ESCROW_ADDRESS as Address],
       }),
       db
         .select({
@@ -82,7 +67,6 @@ export async function getWalletBalance({
     totalBalance: formatUsdc(balance.totalMicroUsdc),
     availableBalance: formatUsdc(balance.availableMicroUsdc),
     committedBalance: formatUsdc(balance.committedMicroUsdc),
-    spendApproval: formatUnits(spendApprovalMicroUsdc, 6),
     consistent: balance.consistent,
   };
 }

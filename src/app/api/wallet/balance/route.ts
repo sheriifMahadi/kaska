@@ -12,7 +12,6 @@ export async function GET() {
     const balance = await getWalletBalance({
       walletId: wallet.id,
       circleWalletId: wallet.circleWalletId,
-      walletAddress: wallet.address,
     });
 
     return NextResponse.json({

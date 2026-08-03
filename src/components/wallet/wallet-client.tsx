@@ -21,7 +21,6 @@ type WalletBalance = {
   totalBalance: string;
   availableBalance: string;
   committedBalance: string;
-  spendApproval: string;
   currency: string;
   consistent: boolean;
 };
@@ -43,7 +42,7 @@ export default function WalletClient() {
   const [error, setError] = useState<string | null>(null);
   const [retrying, setRetrying] = useState(false);
   const [modal, setModal] = useState<
-    "deposit" | "withdraw" | "approval" | null
+    "deposit" | "withdraw" | null
   >(null);
 
   async function loadWallet() {
@@ -234,19 +233,6 @@ export default function WalletClient() {
                 title="Committed"
                 value={wallet.committedBalance}
               />
-            </div>
-
-            <div className="mt-4">
-              <button
-                type="button"
-                onClick={() => setModal("approval")}
-                className="w-full text-left transition-transform hover:scale-[1.01]"
-              >
-                <WalletBalanceCard
-                  title="Spend Approval"
-                  value={wallet.spendApproval}
-                />
-              </button>
             </div>
 
             {!wallet.consistent && (
