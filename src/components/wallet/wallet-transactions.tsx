@@ -1,86 +1,93 @@
 "use client";
 
-const transactions = [
-  {
-    id: 1,
-    type: "Deposit",
-    amount: "+0.40 USDC",
-    status: "Completed",
-    date: "Just now",
-  },
-    {
-    id: 2,
-    type: "Deposit",
-    amount: "+0.40 USDC",
-    status: "Completed",
-    date: "Just now",
-  },
-    {
-    id: 3,
-    type: "Deposit",
-    amount: "+30.0 USDC",
-    status: "Completed",
-    date: "Just now",
-  },
-    {
-    id: 4,
-    type: "Withdrawal",
-    amount: "-5 USDC",
-    status: "Completed",
-    date: "2 days ago",
-  },
-    {
-    id: 5,
-    type: "Withdrawal",
-    amount: "-3.40 USDC",
-    status: "Completed",
-    date: "5mins",
-  },
-];
+import { useEffect, useState } from "react";
+
+type WalletTransaction = {
+  id: string;
+  type: string;
+  amount: string;
+  currency: string;
+  referenceId: string | null;
+  source: string;
+  createdAt: string;
+};
 
 export default function WalletTransactions() {
+  const [transactions, setTransactions] = useState<
+    WalletTransaction[]
+  >([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadTransactions() {
+      try {
+        const response = await fetch("/api/wallet/transactions", {
+          cache: "no-store",
+        });
+
+        if (!response.ok) return;
+
+        const data = await response.json();
+
+        if (!cancelled) {
+          setTransactions(data);
+        }
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      }
+    }
+
+    void loadTransactions();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   return (
-    <div className="mt-8 space-y-4">
+    <div className="space-y-4">
+      <h2 className="text-xl font-semibold text-white">Transactions</h2>
 
-      <h2 className="text-center text-2xl font-semibold text-white">
-        Transactions
-      </h2>
+      <div className="divide-y divide-zinc-800 rounded-2xl border border-zinc-800 bg-zinc-950">
+        {loading && (
+          <p className="px-6 py-5 text-sm text-zinc-500">
+            Loading transactions...
+          </p>
+        )}
 
-      <div className="rounded-2xl border border-zinc-800 bg-zinc-950 divide-y divide-zinc-800">
+        {!loading && transactions.length === 0 && (
+          <p className="px-6 py-5 text-sm text-zinc-500">
+            No wallet transactions yet.
+          </p>
+        )}
 
-        {transactions.map((tx) => (
+        {transactions.map((transaction) => (
           <div
-            key={tx.id}
-            className="flex items-center justify-between px-6 py-5"
+            key={transaction.id}
+            className="flex items-center justify-between gap-4 px-6 py-5"
           >
             <div>
-
-              <p className="font-medium text-white">
-                {tx.type}
+              <p className="capitalize text-white">
+                {transaction.type}
               </p>
-
-              <p className="text-sm text-zinc-500">
-                {tx.date}
+              <p className="mt-1 text-sm text-zinc-500">
+                {new Intl.DateTimeFormat(undefined, {
+                  dateStyle: "medium",
+                  timeStyle: "short",
+                }).format(new Date(transaction.createdAt))}
               </p>
-
             </div>
 
-            <div className="text-right">
-
-              <p className="font-medium text-white">
-                {tx.amount}
-              </p>
-
-              <p className="text-sm text-zinc-500">
-                {tx.status}
-              </p>
-
-            </div>
+            <p className="text-right font-medium text-white">
+              {transaction.amount} {transaction.currency}
+            </p>
           </div>
         ))}
-
       </div>
-
     </div>
   );
 }

@@ -3,23 +3,24 @@ import { headers } from "next/headers";
 import { NextResponse } from "next/server";
 import type { WebhookEvent } from "@clerk/nextjs/server";
 import { serverConfig } from "@/platform/config/server";
-import { provisionUserWallet } from
-  "@/modules/identity/application/provision-user-wallet";
+import {
+  processClerkWebhook,
+  recordClerkWebhookFailure,
+} from "@/modules/identity/application/process-clerk-webhook";
 
 export async function POST(req: Request) {
   const secret = serverConfig.clerkWebhookSecret;
   const headerPayload = await headers();
 
-  const svix_id = headerPayload.get("svix-id");
-  const svix_timestamp = headerPayload.get("svix-timestamp");
-  const svix_signature = headerPayload.get("svix-signature");
+  const eventId = headerPayload.get("svix-id");
+  const timestamp = headerPayload.get("svix-timestamp");
+  const signature = headerPayload.get("svix-signature");
 
-  if (!svix_id || !svix_timestamp || !svix_signature) {
+  if (!eventId || !timestamp || !signature) {
     return new NextResponse("Missing headers", { status: 400 });
   }
 
-  const payload = await req.json();
-  const body = JSON.stringify(payload);
+  const body = await req.text();
 
   const wh = new Webhook(secret);
 
@@ -27,39 +28,39 @@ export async function POST(req: Request) {
 
   try {
     event = wh.verify(body, {
-      "svix-id": svix_id,
-      "svix-timestamp": svix_timestamp,
-      "svix-signature": svix_signature,
+      "svix-id": eventId,
+      "svix-timestamp": timestamp,
+      "svix-signature": signature,
     }) as WebhookEvent;
   } catch {
     return new NextResponse("Invalid signature", { status: 400 });
   }
 
-  // =========================
-  // USER CREATED
-  // =========================
-  if (event.type === "user.created") {
-    const data = event.data;
+  try {
+    const result = await processClerkWebhook(eventId, event);
 
-    const email =
-      data.email_addresses?.[0]?.email_address;
-
-    if (!email) {
-      return new NextResponse(
-        "User has no email address",
-        { status: 400 }
+    return NextResponse.json({
+      success: true,
+      duplicate: result.duplicate,
+      handled: result.handled,
+    });
+  } catch (error) {
+    try {
+      await recordClerkWebhookFailure(eventId, event, error);
+    } catch (recordingError) {
+      console.error(
+        "Failed to record Clerk webhook failure",
+        recordingError
       );
     }
 
-    await provisionUserWallet({
-      clerkId: data.id,
-      email,
-      name:
-        `${data.first_name ?? ""} ${data.last_name ?? ""}`.trim() ||
-        null,
-      imageUrl: data.image_url ?? null,
-    });
-  }
+    console.error("Failed to process Clerk webhook", error);
 
-  return NextResponse.json({ success: true });
+    return NextResponse.json(
+      {
+        error: "Webhook processing failed",
+      },
+      { status: 500 }
+    );
+  }
 }

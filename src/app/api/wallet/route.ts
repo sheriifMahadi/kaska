@@ -1,44 +1,34 @@
-import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
-import { db } from "@/lib/db";
-import { users, wallets } from "@/db/schema";
-import { eq } from "drizzle-orm";
+
+import { requireCurrentWallet } from
+  "@/modules/identity/application/current-wallet";
+import { MAX_WALLET_PROVISIONING_ATTEMPTS } from
+  "@/modules/identity/domain/wallet-provisioning-policy";
+import { errorResponse } from "@/shared/http/error-response";
 
 export async function GET() {
-  const { userId } = await auth();
-
-  if (!userId) {
-    return NextResponse.json(
-      { error: "Unauthorized" },
-      { status: 401 }
+  try {
+    const { wallet } = await requireCurrentWallet();
+    const automaticRetryScheduled = Boolean(
+      wallet.status === "failed" &&
+        wallet.nextProvisioningAttemptAt
     );
+
+    return NextResponse.json({
+      status: wallet.status,
+      address: wallet.address,
+      provisioningAttempts: wallet.provisioningAttempts,
+      provisionedAt: wallet.provisionedAt,
+      nextProvisioningAttemptAt:
+        wallet.nextProvisioningAttemptAt,
+      automaticRetryScheduled,
+      canRetry:
+        wallet.status === "failed" &&
+        wallet.provisioningAttempts >=
+          MAX_WALLET_PROVISIONING_ATTEMPTS &&
+        !wallet.nextProvisioningAttemptAt,
+    });
+  } catch (error) {
+    return errorResponse(error, "GET /api/wallet");
   }
-
-  const dbUser = await db
-    .select()
-    .from(users)
-    .where(eq(users.clerkId, userId))
-    .then((r) => r[0]);
-
-  if (!dbUser) {
-    return NextResponse.json(
-      { error: "User not found" },
-      { status: 404 }
-    );
-  }
-
-  const wallet = await db
-    .select()
-    .from(wallets)
-    .where(eq(wallets.userId, dbUser.id))
-    .then((r) => r[0]);
-
-  if (!wallet) {
-    return NextResponse.json(
-      { wallet: "null" ,
-      status: "initializing" }
-    );
-  }
-
-  return NextResponse.json(wallet);
 }

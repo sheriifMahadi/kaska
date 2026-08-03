@@ -7,8 +7,15 @@ import {
   numeric,
   boolean,
   integer,
-  decimal
+  decimal,
+  jsonb,
 } from "drizzle-orm/pg-core";
+import type {
+  SecurityEventOutcome,
+  UserStatus,
+  WalletProvisioningStatus,
+  WebhookProcessingStatus,
+} from "@/modules/identity/domain/wallet-provisioning";
 import type {
   TaskPriority,
   TaskStatus,
@@ -22,11 +29,19 @@ export const users = pgTable("users", {
 
   clerkId: text("clerk_id").notNull().unique(),
 
-  email: text("email").notNull().unique(),
+  email: text("email").notNull(),
   name: text("name"),
   imageUrl: text("image_url"),
 
+  status: text("status")
+    .$type<UserStatus>()
+    .notNull()
+    .default("active"),
+
+  deletedAt: timestamp("deleted_at"),
+
   createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
 /* ---------------------------
@@ -42,18 +57,52 @@ export const wallets = pgTable(
       .unique()
       .references(() => users.id, { onDelete: "cascade" }),
 
-    circleWalletId: text("circle_wallet_id").notNull(),
+    circleWalletId: text("circle_wallet_id").unique(),
 
-    circleWalletSetId: text("circle_wallet_set_id").notNull().unique(),
+    circleWalletSetId: text("circle_wallet_set_id").unique(),
 
     address: text("address"),
 
-    status: text("status").notNull().default("active"),
+    status: text("status")
+      .$type<WalletProvisioningStatus>()
+      .notNull()
+      .default("pending"),
+
+    walletSetIdempotencyKey: uuid("wallet_set_idempotency_key")
+      .defaultRandom()
+      .notNull()
+      .unique(),
+
+    walletIdempotencyKey: uuid("wallet_idempotency_key")
+      .defaultRandom()
+      .notNull()
+      .unique(),
+
+    provisioningAttempts: integer("provisioning_attempts")
+      .notNull()
+      .default(0),
+
+    lastProvisioningError: text("last_provisioning_error"),
+
+    lastCircleRequestId: uuid("last_circle_request_id"),
+
+    provisioningStartedAt: timestamp("provisioning_started_at"),
+
+    nextProvisioningAttemptAt: timestamp(
+      "next_provisioning_attempt_at"
+    ),
+
+    provisionedAt: timestamp("provisioned_at"),
 
     createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
   },
   (table) => ({
     userIdx: index("wallet_user_idx").on(table.userId),
+    provisioningIdx: index("wallet_provisioning_idx").on(
+      table.status,
+      table.nextProvisioningAttemptAt
+    ),
   })
 );
 
@@ -88,6 +137,72 @@ export const walletTransactions = pgTable(
   (table) => ({
     walletIdx: index("wallet_tx_wallet_idx").on(table.walletId),
     userIdx: index("wallet_tx_user_idx").on(table.userId),
+  })
+);
+
+/* ---------------------------
+   CLERK WEBHOOK RECEIPTS
+---------------------------- */
+export const clerkWebhookEvents = pgTable(
+  "clerk_webhook_events",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+
+    clerkEventId: text("clerk_event_id").notNull().unique(),
+
+    eventType: text("event_type").notNull(),
+
+    status: text("status")
+      .$type<WebhookProcessingStatus>()
+      .notNull()
+      .default("processing"),
+
+    attempts: integer("attempts").notNull().default(1),
+
+    lastError: text("last_error"),
+
+    receivedAt: timestamp("received_at").defaultNow().notNull(),
+
+    processedAt: timestamp("processed_at"),
+
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (table) => ({
+    statusIdx: index("clerk_webhook_status_idx").on(table.status),
+  })
+);
+
+/* ---------------------------
+   SECURITY EVENTS
+---------------------------- */
+export const securityEvents = pgTable(
+  "security_events",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+
+    userId: uuid("user_id").references(() => users.id, {
+      onDelete: "set null",
+    }),
+
+    clerkId: text("clerk_id"),
+
+    eventType: text("event_type").notNull(),
+
+    outcome: text("outcome")
+      .$type<SecurityEventOutcome>()
+      .notNull(),
+
+    metadata: jsonb("metadata")
+      .$type<Record<string, unknown>>()
+      .notNull()
+      .default({}),
+
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => ({
+    userIdx: index("security_event_user_idx").on(table.userId),
+    clerkIdx: index("security_event_clerk_idx").on(table.clerkId),
+    typeIdx: index("security_event_type_idx").on(table.eventType),
   })
 );
 

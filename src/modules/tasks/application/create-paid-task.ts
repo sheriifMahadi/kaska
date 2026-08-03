@@ -2,7 +2,6 @@ import "server-only";
 
 import {
   encodeFunctionData,
-  isAddress,
 } from "viem";
 import { eq, sql } from "drizzle-orm";
 import {
@@ -10,7 +9,6 @@ import {
   tasks,
   userAgents,
   walletLocks,
-  wallets,
 } from "@/db/schema";
 import { db } from "@/lib/db";
 import { escrowAbi } from "@/lib/abi/kaskaEscrow";
@@ -30,6 +28,8 @@ import { parsePositiveUsdc } from
   "@/modules/payments/domain/usdc";
 import type { CreateTaskInput } from
   "./parse-create-task";
+import { requireActiveUserWallet } from
+  "@/modules/identity/application/current-wallet";
 
 export async function createPaidTask(
   userId: string,
@@ -77,23 +77,7 @@ export async function createPaidTask(
     throw invalidInput("Agent has an invalid task price");
   }
 
-  const [wallet] = await db
-    .select()
-    .from(wallets)
-    .where(eq(wallets.userId, userId))
-    .limit(1);
-
-  if (!wallet) {
-    throw notFound("Wallet not found");
-  }
-
-  if (
-    wallet.status !== "active" ||
-    !wallet.address ||
-    !isAddress(wallet.address)
-  ) {
-    throw invalidInput("Wallet is not active");
-  }
+  const wallet = await requireActiveUserWallet(userId);
 
   // Temporary allocator. Phase 6 will replace this with a database
   // sequence or deterministic bytes32 identifier.

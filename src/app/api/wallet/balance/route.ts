@@ -1,9 +1,6 @@
-import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
-import { eq } from "drizzle-orm";
 import { formatUnits } from "viem";
 
-import { db } from "@/lib/db";
 import { circle } from "@/lib/circle";
 import { usdcAbi } from "@/lib/abi/usdc";
 import {
@@ -11,51 +8,13 @@ import {
   ESCROW_ADDRESS,
   publicClient,
 } from "@/platform/blockchain/arc";
-import { users, wallets } from "@/db/schema";
+import { requireActiveCurrentWallet } from
+  "@/modules/identity/application/current-wallet";
+import { errorResponse } from "@/shared/http/error-response";
 
 export async function GET() {
-  const { userId } = await auth();
-
-  if (!userId) {
-    return NextResponse.json(
-      { error: "Unauthorized" },
-      { status: 401 }
-    );
-  }
-
-  // =========================
-  // GET USER
-  // =========================
-
-  const user = await db
-    .select()
-    .from(users)
-    .where(eq(users.clerkId, userId))
-    .then((r) => r[0]);
-
-  if (!user) {
-    return NextResponse.json(
-      { error: "User not found" },
-      { status: 404 }
-    );
-  }
-
-  // =========================
-  // GET WALLET
-  // =========================
-
-  const wallet = await db
-    .select()
-    .from(wallets)
-    .where(eq(wallets.userId, user.id))
-    .then((r) => r[0]);
-
-  if (!wallet) {
-    return NextResponse.json(
-      { error: "Wallet not found" },
-      { status: 404 }
-    );
-  }
+  try {
+    const { wallet } = await requireActiveCurrentWallet();
 
   // =========================
   // GET CIRCLE BALANCE
@@ -98,20 +57,22 @@ export async function GET() {
   // RESPONSE
   // =========================
 
-  return NextResponse.json({
-    address: wallet.address,
-    walletId: wallet.circleWalletId,
+    return NextResponse.json({
+      address: wallet.address,
 
-    currency: "USDC",
+      currency: "USDC",
 
-    totalBalance,
+      totalBalance,
 
-    availableBalance: totalBalance,
+      availableBalance: totalBalance,
 
-    // Will come from the escrow contract later
-    lockedBalance: "0",
+      // Will come from the escrow contract later
+      lockedBalance: "0",
 
-    // Current approved spending limit
-    spendApproval,
-  });
+      // Current approved spending limit
+      spendApproval,
+    });
+  } catch (error) {
+    return errorResponse(error, "GET /api/wallet/balance");
+  }
 }

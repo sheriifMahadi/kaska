@@ -2,6 +2,8 @@ import { and, asc, eq } from "drizzle-orm";
 
 import { db } from "@/lib/db";
 import { tasks } from "@/db/schema";
+import { processWalletProvisioningQueue } from
+  "@/modules/identity/application/process-wallet-provisioning";
 
 import { executeTask } from "./task-executor";
 
@@ -25,6 +27,7 @@ export async function startWorker(
 
   while (!signal?.aborted) {
     try {
+      await processWalletProvisioningQueue();
       await processQueue();
     } catch (error) {
       console.error("Worker error:", error);
@@ -98,15 +101,16 @@ async function processQueue() {
 
 function sleep(ms: number, signal?: AbortSignal) {
   return new Promise<void>((resolve) => {
-    const timeout = setTimeout(resolve, ms);
+    const finish = () => {
+      signal?.removeEventListener("abort", onAbort);
+      resolve();
+    };
+    const timeout = setTimeout(finish, ms);
+    const onAbort = () => {
+      clearTimeout(timeout);
+      finish();
+    };
 
-    signal?.addEventListener(
-      "abort",
-      () => {
-        clearTimeout(timeout);
-        resolve();
-      },
-      { once: true }
-    );
+    signal?.addEventListener("abort", onAbort, { once: true });
   });
 }

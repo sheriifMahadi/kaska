@@ -1,15 +1,16 @@
-import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 import { and, eq } from "drizzle-orm";
 
 import { db } from "@/lib/db";
 import {
-  users,
   tasks,
   taskOutputs,
   userAgents,
   agents,
 } from "@/db/schema";
+import { requireCurrentUser } from
+  "@/modules/identity/application/current-user";
+import { errorResponse } from "@/shared/http/error-response";
 
 type Props = {
   params: Promise<{
@@ -22,28 +23,8 @@ export async function GET(
   { params }: Props
 ) {
   try {
-    const { userId: clerkId } = await auth();
-
-    if (!clerkId) {
-      return NextResponse.json(
-        { error: "Unauthorized" },
-        { status: 401 }
-      );
-    }
-
     const { id } = await params;
-
-    const [user] = await db
-      .select()
-      .from(users)
-      .where(eq(users.clerkId, clerkId));
-
-    if (!user) {
-      return NextResponse.json(
-        { error: "User not found" },
-        { status: 404 }
-      );
-    }
+    const user = await requireCurrentUser();
 
     const rows = await db
       .select({
@@ -95,11 +76,6 @@ export async function GET(
 
     return NextResponse.json(rows[0]);
   } catch (error) {
-    console.error(error);
-
-    return NextResponse.json(
-      { error: "Failed to load task" },
-      { status: 500 }
-    );
+    return errorResponse(error, "GET /api/tasks/[id]");
   }
 }

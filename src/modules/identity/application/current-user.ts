@@ -1,7 +1,7 @@
 import "server-only";
 
 import { auth } from "@clerk/nextjs/server";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { users } from "@/db/schema";
 import { db } from "@/lib/db";
 import {
@@ -19,7 +19,12 @@ export async function requireCurrentUser() {
   const [user] = await db
     .select()
     .from(users)
-    .where(eq(users.clerkId, clerkId))
+    .where(
+      and(
+        eq(users.clerkId, clerkId),
+        eq(users.status, "active")
+      )
+    )
     .limit(1);
 
   if (!user) {
@@ -28,4 +33,3 @@ export async function requireCurrentUser() {
 
   return user;
 }
-

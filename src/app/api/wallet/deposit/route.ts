@@ -1,17 +1,16 @@
-import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
+import { requireCurrentUser } from
+  "@/modules/identity/application/current-user";
+import { errorResponse } from "@/shared/http/error-response";
 
 export async function POST() {
-  const { userId } = await auth();
+  try {
+    await requireCurrentUser();
 
-  if (!userId) {
-    return NextResponse.json(
-      { error: "Unauthorized" },
-      { status: 401 }
-    );
+    return NextResponse.json({
+      message: "Deposit endpoint coming soon",
+    });
+  } catch (error) {
+    return errorResponse(error, "POST /api/wallet/deposit");
   }
-
-  return NextResponse.json({
-    message: "Deposit endpoint coming soon",
-  });
 }

@@ -1,78 +1,50 @@
-import { auth } from "@clerk/nextjs/server";
 import { NextRequest, NextResponse } from "next/server";
-import { eq } from "drizzle-orm";
+import { isAddress, type Address } from "viem";
 
-import { db } from "@/lib/db";
+import { walletTransactions } from "@/db/schema";
 import { circle } from "@/lib/circle";
+import { db } from "@/lib/db";
+import { requireActiveCurrentWallet } from
+  "@/modules/identity/application/current-wallet";
+import { parsePositiveUsdc } from
+  "@/modules/payments/domain/usdc";
 import {
-  ARC_TESTNET,
   ARC_TESTNET_USDC,
 } from "@/platform/blockchain/arc";
+import { invalidInput } from
+  "@/shared/errors/application-error";
+import { errorResponse } from "@/shared/http/error-response";
 
-import {
-  users,
-  wallets,
-} from "@/db/schema";
-
-export async function POST(req: NextRequest) {
-  const { userId } = await auth();
-
-  if (!userId) {
-    return NextResponse.json(
-      { error: "Unauthorized" },
-      { status: 401 }
-    );
-  }
-
-  const { recipient, amount } = await req.json();
-
-  if (!recipient || !amount) {
-    return NextResponse.json(
-      { error: "Recipient and amount required" },
-      { status: 400 }
-    );
-  }
-
-  const user = await db
-    .select()
-    .from(users)
-    .where(eq(users.clerkId, userId))
-    .then((r) => r[0]);
-
-  if (!user) {
-    return NextResponse.json(
-      { error: "User not found" },
-      { status: 404 }
-    );
-  }
-
-  const wallet = await db
-    .select()
-    .from(wallets)
-    .where(eq(wallets.userId, user.id))
-    .then((r) => r[0]);
-
-  if (!wallet) {
-    return NextResponse.json(
-      { error: "Wallet not found" },
-      { status: 404 }
-    );
-  }
-
-  if (!wallet.address) {
-    return NextResponse.json(
-      { error: "Wallet is not active" },
-      { status: 409 }
-    );
-  }
-
+export async function POST(request: NextRequest) {
   try {
-    const tx = await circle.createTransaction({
-      blockchain: ARC_TESTNET,
-      walletAddress: wallet.address,
+    const body = await request.json();
+
+    if (
+      typeof body.recipient !== "string" ||
+      !isAddress(body.recipient)
+    ) {
+      throw invalidInput("A valid recipient address is required");
+    }
+
+    if (typeof body.amount !== "string") {
+      throw invalidInput("A valid USDC amount is required");
+    }
+
+    let amount;
+
+    try {
+      amount = parsePositiveUsdc(body.amount);
+    } catch {
+      throw invalidInput("A valid positive USDC amount is required");
+    }
+
+    const { user, wallet } = await requireActiveCurrentWallet();
+    const recipient = body.recipient as Address;
+    const response = await circle.createTransaction({
+      walletId: wallet.circleWalletId,
       tokenAddress: ARC_TESTNET_USDC,
       destinationAddress: recipient,
-      amount: [amount],
+      amount: [amount.decimal],
       fee: {
         type: "level",
         config: {
@@ -80,21 +52,26 @@ export async function POST(req: NextRequest) {
         },
       },
     });
+    const circleTransactionId = response.data?.id;
+
+    if (!circleTransactionId) {
+      throw new Error("Circle returned no transaction ID");
+    }
+
+    await db.insert(walletTransactions).values({
+      walletId: wallet.id,
+      userId: user.id,
+      type: "withdrawal",
+      amount: amount.decimal,
+      referenceId: circleTransactionId,
+      source: "circle",
+    });
 
     return NextResponse.json({
-      transactionId: tx.data?.id,
-      state: tx.data?.state,
+      transactionId: circleTransactionId,
+      state: response.data?.state,
     });
-  } catch (err) {
-    console.error(err);
-
-    return NextResponse.json(
-      {
-        error: "Transfer failed",
-      },
-      {
-        status: 500,
-      }
-    );
+  } catch (error) {
+    return errorResponse(error, "POST /api/wallet/withdraw");
   }
 }

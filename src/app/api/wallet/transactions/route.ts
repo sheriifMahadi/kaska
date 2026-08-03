@@ -1,46 +1,31 @@
-import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
+import { desc, eq } from "drizzle-orm";
+
+import { walletTransactions } from "@/db/schema";
 import { db } from "@/lib/db";
-import { users, wallets, walletTransactions } from "@/db/schema";
-import { eq } from "drizzle-orm";
+import { requireCurrentWallet } from
+  "@/modules/identity/application/current-wallet";
+import { errorResponse } from "@/shared/http/error-response";
 
 export async function GET() {
-  const { userId } = await auth();
+  try {
+    const { user } = await requireCurrentWallet();
+    const transactions = await db
+      .select({
+        id: walletTransactions.id,
+        type: walletTransactions.type,
+        amount: walletTransactions.amount,
+        currency: walletTransactions.currency,
+        referenceId: walletTransactions.referenceId,
+        source: walletTransactions.source,
+        createdAt: walletTransactions.createdAt,
+      })
+      .from(walletTransactions)
+      .where(eq(walletTransactions.userId, user.id))
+      .orderBy(desc(walletTransactions.createdAt));
 
-  if (!userId) {
-    return NextResponse.json(
-      { error: "Unauthorized" },
-      { status: 401 }
-    );
+    return NextResponse.json(transactions);
+  } catch (error) {
+    return errorResponse(error, "GET /api/wallet/transactions");
   }
-
-  const dbUser = await db
-    .select()
-    .from(users)
-    .where(eq(users.clerkId, userId))
-    .then((r) => r[0]);
-
-  if (!dbUser) {
-    return NextResponse.json(
-      { error: "User not found" },
-      { status: 404 }
-    );
-  }
-
-  const wallet = await db
-    .select()
-    .from(wallets)
-    .where(eq(wallets.userId, dbUser.id))
-    .then((r) => r[0]);
-
-  if (!wallet) {
-    return NextResponse.json([]);
-  }
-
-  const transactions = await db
-    .select()
-    .from(walletTransactions)
-    .where(eq(walletTransactions.walletId, wallet.id));
-
-  return NextResponse.json(transactions);
 }
