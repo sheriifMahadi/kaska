@@ -1,9 +1,11 @@
 "use client";
 
 import DepositPanel from "./deposit-panel";
+import WithdrawalPanel from "./withdrawal-panel";
 
 type Wallet = {
   address: string;
+  availableBalance: string;
 };
 
 type ModalType =
@@ -17,12 +19,14 @@ type Props = {
   setModal: React.Dispatch<
     React.SetStateAction<ModalType>
   >;
+  onWithdrawalSubmitted: () => Promise<void>;
 };
 
 export default function WalletModal({
   modal,
   wallet,
   setModal,
+  onWithdrawalSubmitted,
 }: Props) {
   if (!modal) return null;
 
@@ -63,35 +67,10 @@ export default function WalletModal({
           )}
 
           {modal === "withdraw" && (
-            <div className="space-y-5">
-              <div>
-                <label className="mb-2 block text-sm text-zinc-400">
-                  Recipient Address
-                </label>
-
-                <input
-                  type="text"
-                  placeholder="0x..."
-                  className="w-full rounded-xl border border-zinc-700 bg-zinc-900 p-3 text-white outline-none transition focus:border-violet-500"
-                />
-              </div>
-
-              <div>
-                <label className="mb-2 block text-sm text-zinc-400">
-                  Amount (USDC)
-                </label>
-
-                <input
-                  type="number"
-                  placeholder="0.00"
-                  className="w-full rounded-xl border border-zinc-700 bg-zinc-900 p-3 text-white outline-none transition focus:border-violet-500"
-                />
-              </div>
-
-              <button className="w-full rounded-xl bg-violet-600 py-3 font-medium text-white transition hover:bg-violet-500">
-                Send
-              </button>
-            </div>
+            <WithdrawalPanel
+              availableBalance={wallet.availableBalance}
+              onSubmitted={onWithdrawalSubmitted}
+            />
           )}
 
         </div>

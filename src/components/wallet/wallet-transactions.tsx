@@ -17,7 +17,11 @@ type WalletTransaction = {
   failedAt: string | null;
 };
 
-export default function WalletTransactions() {
+type Props = {
+  refreshKey?: number;
+};
+
+export default function WalletTransactions({ refreshKey = 0 }: Props) {
   const [transactions, setTransactions] = useState<
     WalletTransaction[]
   >([]);
@@ -51,7 +55,7 @@ export default function WalletTransactions() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [refreshKey]);
 
   return (
     <div className="space-y-4">

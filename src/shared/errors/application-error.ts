@@ -29,3 +29,6 @@ export function invalidInput(message: string) {
   return new ApplicationError(message, 400, "INVALID_INPUT");
 }
 
+export function rateLimited(message: string) {
+  return new ApplicationError(message, 429, "RATE_LIMITED");
+}

@@ -7,6 +7,7 @@ import { circle } from "@/lib/circle";
 import { db } from "@/lib/db";
 import {
   formatUsdc,
+  parseExternalUsdcBalance,
   parseUsdc,
 } from "@/modules/payments/domain/usdc";
 import { calculateWalletBalance } from
@@ -46,7 +47,7 @@ export async function getWalletBalance({
       token.symbol?.toUpperCase() === "USDC" &&
       token.blockchain === "ARC-TESTNET"
   );
-  const walletMicroUsdc = parseUsdc(
+  const walletMicroUsdc = parseExternalUsdcBalance(
     usdcBalance?.amount ?? "0"
   ).microUsdc;
 

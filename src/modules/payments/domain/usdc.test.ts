@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   formatUsdc,
+  parseExternalUsdcBalance,
   parsePositiveUsdc,
   parseUsdc,
 } from "./usdc";
@@ -34,4 +35,11 @@ test("formats integer micro-USDC values", () => {
     "1.000001"
   );
   assert.equal(formatUsdc(BigInt(10_000_000)), "10");
+});
+
+test("external balances round down beyond six decimals", () => {
+  assert.deepEqual(parseExternalUsdcBalance("12.345678999999"), {
+    decimal: "12.345678",
+    microUsdc: 12_345_678n,
+  });
 });

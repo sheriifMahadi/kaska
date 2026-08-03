@@ -41,6 +41,7 @@ export default function WalletClient() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [retrying, setRetrying] = useState(false);
+  const [transactionRefreshKey, setTransactionRefreshKey] = useState(0);
   const [modal, setModal] = useState<
     "deposit" | "withdraw" | null
   >(null);
@@ -114,6 +115,11 @@ export default function WalletClient() {
     } finally {
       setRetrying(false);
     }
+  }
+
+  async function handleWithdrawalSubmitted() {
+    await loadWallet();
+    setTransactionRefreshKey((value) => value + 1);
   }
 
   useEffect(() => {
@@ -260,12 +266,13 @@ export default function WalletClient() {
             </div>
           </div>
 
-          <WalletTransactions />
+          <WalletTransactions refreshKey={transactionRefreshKey} />
 
           <WalletModal
             modal={modal}
             wallet={wallet}
             setModal={setModal}
+            onWithdrawalSubmitted={handleWithdrawalSubmitted}
           />
         </>
       )}
