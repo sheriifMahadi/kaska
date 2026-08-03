@@ -5,11 +5,16 @@ import { useEffect, useState } from "react";
 type WalletTransaction = {
   id: string;
   type: string;
+  direction: "credit" | "debit";
+  status: "pending" | "confirmed" | "failed";
   amount: string;
   currency: string;
-  referenceId: string | null;
+  circleTransactionId: string | null;
+  txHash: string | null;
   source: string;
   createdAt: string;
+  confirmedAt: string | null;
+  failedAt: string | null;
 };
 
 export default function WalletTransactions() {
@@ -82,9 +87,15 @@ export default function WalletTransactions() {
               </p>
             </div>
 
-            <p className="text-right font-medium text-white">
-              {transaction.amount} {transaction.currency}
-            </p>
+            <div className="text-right">
+              <p className="font-medium text-white">
+                {transaction.direction === "credit" ? "+" : "-"}
+                {transaction.amount} {transaction.currency}
+              </p>
+              <p className="mt-1 capitalize text-zinc-500">
+                {transaction.status}
+              </p>
+            </div>
           </div>
         ))}
       </div>

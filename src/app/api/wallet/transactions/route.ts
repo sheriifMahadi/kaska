@@ -14,11 +14,17 @@ export async function GET() {
       .select({
         id: walletTransactions.id,
         type: walletTransactions.type,
+        direction: walletTransactions.direction,
+        status: walletTransactions.status,
         amount: walletTransactions.amount,
         currency: walletTransactions.currency,
-        referenceId: walletTransactions.referenceId,
+        circleTransactionId:
+          walletTransactions.circleTransactionId,
+        txHash: walletTransactions.txHash,
         source: walletTransactions.source,
         createdAt: walletTransactions.createdAt,
+        confirmedAt: walletTransactions.confirmedAt,
+        failedAt: walletTransactions.failedAt,
       })
       .from(walletTransactions)
       .where(eq(walletTransactions.userId, user.id))

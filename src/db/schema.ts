@@ -1,4 +1,5 @@
 import {
+  check,
   pgTable,
   text,
   timestamp,
@@ -9,7 +10,10 @@ import {
   integer,
   decimal,
   jsonb,
+  bigint,
+  uniqueIndex,
 } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
 import type {
   SecurityEventOutcome,
   UserStatus,
@@ -20,6 +24,12 @@ import type {
   TaskPriority,
   TaskStatus,
 } from "@/modules/tasks/domain/task-status";
+import type {
+  WalletTransactionDirection,
+  WalletTransactionSource,
+  WalletTransactionStatus,
+  WalletTransactionType,
+} from "@/modules/wallets/domain/wallet-transaction";
 
 /* ---------------------------
    USERS
@@ -122,21 +132,80 @@ export const walletTransactions = pgTable(
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
 
-    type: text("type").notNull(),
+    type: text("type")
+      .$type<WalletTransactionType>()
+      .notNull(),
+
+    direction: text("direction")
+      .$type<WalletTransactionDirection>()
+      .notNull(),
+
+    status: text("status")
+      .$type<WalletTransactionStatus>()
+      .notNull()
+      .default("pending"),
 
     amount: numeric("amount", { precision: 18, scale: 6 }).notNull(),
 
-    currency: text("currency").notNull().default("USDC"),
+    currency: text("currency")
+      .$type<"USDC">()
+      .notNull()
+      .default("USDC"),
 
-    referenceId: text("reference_id"),
+    circleTransactionId: text("circle_transaction_id"),
 
-    source: text("source").notNull(),
+    idempotencyKey: uuid("idempotency_key"),
+
+    txHash: text("tx_hash"),
+
+    chainLogIndex: integer("chain_log_index"),
+
+    blockNumber: bigint("block_number", { mode: "number" }),
+
+    fromAddress: text("from_address"),
+
+    toAddress: text("to_address"),
+
+    error: text("error"),
+
+    source: text("source")
+      .$type<WalletTransactionSource>()
+      .notNull(),
 
     createdAt: timestamp("created_at").defaultNow().notNull(),
+
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+
+    confirmedAt: timestamp("confirmed_at"),
+
+    failedAt: timestamp("failed_at"),
   },
   (table) => ({
     walletIdx: index("wallet_tx_wallet_idx").on(table.walletId),
     userIdx: index("wallet_tx_user_idx").on(table.userId),
+    userCreatedIdx: index("wallet_tx_user_created_idx").on(
+      table.userId,
+      table.createdAt
+    ),
+    statusIdx: index("wallet_tx_status_idx").on(table.status),
+    circleTransactionIdx: uniqueIndex(
+      "wallet_tx_circle_transaction_idx"
+    ).on(table.circleTransactionId),
+    idempotencyIdx: uniqueIndex("wallet_tx_idempotency_idx").on(
+      table.idempotencyKey
+    ),
+    chainEventIdx: uniqueIndex("wallet_tx_chain_event_idx").on(
+      table.txHash,
+      table.chainLogIndex
+    ),
+    positiveAmountCheck: check(
+      "wallet_tx_positive_amount_check",
+      sql`${table.amount} > 0`
+    ),
+    directionCheck: check(
+      "wallet_tx_direction_check",
+      sql`(${table.type} = 'deposit' AND ${table.direction} = 'credit') OR (${table.type} = 'withdrawal' AND ${table.direction} = 'debit')`
+    ),
   })
 );
 

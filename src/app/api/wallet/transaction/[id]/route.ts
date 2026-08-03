@@ -20,17 +20,20 @@ export async function GET(_request: Request, { params }: Props) {
     const user = await requireCurrentUser();
     const { id } = await params;
     const [ownedTransaction] = await db
-      .select({ referenceId: walletTransactions.referenceId })
+      .select({
+        circleTransactionId:
+          walletTransactions.circleTransactionId,
+      })
       .from(walletTransactions)
       .where(
         and(
           eq(walletTransactions.userId, user.id),
-          eq(walletTransactions.referenceId, id)
+          eq(walletTransactions.circleTransactionId, id)
         )
       )
       .limit(1);
 
-    if (!ownedTransaction?.referenceId) {
+    if (!ownedTransaction?.circleTransactionId) {
       throw notFound("Transaction not found");
     }
 

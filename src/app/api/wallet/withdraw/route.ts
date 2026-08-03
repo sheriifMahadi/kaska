@@ -62,9 +62,13 @@ export async function POST(request: NextRequest) {
       walletId: wallet.id,
       userId: user.id,
       type: "withdrawal",
+      direction: "debit",
+      status: "pending",
       amount: amount.decimal,
-      referenceId: circleTransactionId,
+      circleTransactionId,
       source: "circle",
+      fromAddress: wallet.address,
+      toAddress: recipient,
     });
 
     return NextResponse.json({

@@ -20,9 +20,10 @@ type WalletBalance = {
   address: string;
   totalBalance: string;
   availableBalance: string;
-  lockedBalance: string;
+  committedBalance: string;
   spendApproval: string;
   currency: string;
+  consistent: boolean;
 };
 
 function retryTime(value: string | null) {
@@ -222,17 +223,24 @@ export default function WalletClient() {
 
             <div className="mt-6 grid gap-4 md:grid-cols-3">
               <WalletBalanceCard
+                title="Total"
+                value={wallet.totalBalance}
+              />
+              <WalletBalanceCard
                 title="Available"
                 value={wallet.availableBalance}
               />
               <WalletBalanceCard
-                title="Escrow"
-                value={wallet.lockedBalance}
+                title="Committed"
+                value={wallet.committedBalance}
               />
+            </div>
+
+            <div className="mt-4">
               <button
                 type="button"
                 onClick={() => setModal("approval")}
-                className="text-left transition-transform hover:scale-[1.02]"
+                className="w-full text-left transition-transform hover:scale-[1.01]"
               >
                 <WalletBalanceCard
                   title="Spend Approval"
@@ -240,6 +248,13 @@ export default function WalletClient() {
                 />
               </button>
             </div>
+
+            {!wallet.consistent && (
+              <p className="mt-4 text-sm text-amber-300">
+                Wallet accounting is being reconciled. Spending is
+                temporarily unavailable.
+              </p>
+            )}
 
             <div className="mt-6 flex gap-4">
               <button
