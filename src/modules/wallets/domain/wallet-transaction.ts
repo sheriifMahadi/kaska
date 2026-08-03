@@ -36,3 +36,19 @@ export function transactionDirection(
 ): WalletTransactionDirection {
   return type === "deposit" ? "credit" : "debit";
 }
+
+const CIRCLE_CONFIRMED_STATES = new Set(["CONFIRMED", "COMPLETE"]);
+const CIRCLE_FAILED_STATES = new Set([
+  "FAILED",
+  "DENIED",
+  "CANCELLED",
+  "STUCK",
+]);
+
+export function statusFromCircleState(
+  state: string
+): WalletTransactionStatus {
+  if (CIRCLE_CONFIRMED_STATES.has(state)) return "confirmed";
+  if (CIRCLE_FAILED_STATES.has(state)) return "failed";
+  return "pending";
+}

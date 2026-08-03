@@ -11,6 +11,7 @@ type WalletTransaction = {
   currency: string;
   circleTransactionId: string | null;
   txHash: string | null;
+  error: string | null;
   source: string;
   createdAt: string;
   confirmedAt: string | null;
@@ -26,6 +27,9 @@ export default function WalletTransactions({ refreshKey = 0 }: Props) {
     WalletTransaction[]
   >([]);
   const [loading, setLoading] = useState(true);
+  const pendingCount = transactions.filter(
+    (transaction) => transaction.status === "pending"
+  ).length;
 
   useEffect(() => {
     let cancelled = false;
@@ -51,15 +55,24 @@ export default function WalletTransactions({ refreshKey = 0 }: Props) {
     }
 
     void loadTransactions();
+    const interval = window.setInterval(loadTransactions, 10_000);
 
     return () => {
       cancelled = true;
+      window.clearInterval(interval);
     };
   }, [refreshKey]);
 
   return (
     <div className="space-y-4">
       <h2 className="text-xl font-semibold text-white">Transactions</h2>
+
+      {pendingCount > 0 && (
+        <p className="text-sm text-amber-300">
+          {pendingCount} transaction{pendingCount === 1 ? " is" : "s are"}{" "}
+          still being confirmed.
+        </p>
+      )}
 
       <div className="divide-y divide-zinc-800 rounded-2xl border border-zinc-800 bg-zinc-950">
         {loading && (
@@ -89,6 +102,17 @@ export default function WalletTransactions({ refreshKey = 0 }: Props) {
                   timeStyle: "short",
                 }).format(new Date(transaction.createdAt))}
               </p>
+              {transaction.txHash && (
+                <code className="mt-1 block text-xs text-zinc-600">
+                  {transaction.txHash.slice(0, 10)}…
+                  {transaction.txHash.slice(-8)}
+                </code>
+              )}
+              {transaction.status === "failed" && transaction.error && (
+                <p className="mt-1 max-w-md text-xs text-red-400">
+                  {transaction.error}
+                </p>
+              )}
             </div>
 
             <div className="text-right">
@@ -96,7 +120,15 @@ export default function WalletTransactions({ refreshKey = 0 }: Props) {
                 {transaction.direction === "credit" ? "+" : "-"}
                 {transaction.amount} {transaction.currency}
               </p>
-              <p className="mt-1 capitalize text-zinc-500">
+              <p
+                className={`mt-1 capitalize ${
+                  transaction.status === "confirmed"
+                    ? "text-emerald-400"
+                    : transaction.status === "failed"
+                      ? "text-red-400"
+                      : "text-amber-300"
+                }`}
+              >
                 {transaction.status}
               </p>
             </div>

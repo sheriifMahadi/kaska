@@ -4,6 +4,10 @@ import { db } from "@/lib/db";
 import { tasks } from "@/db/schema";
 import { processWalletProvisioningQueue } from
   "@/modules/identity/application/process-wallet-provisioning";
+import { syncPendingWithdrawals } from
+  "@/modules/wallets/application/sync-pending-withdrawals";
+import { reconcileCircleTransactions } from
+  "@/modules/wallets/application/reconcile-circle-transactions";
 
 import { executeTask } from "./task-executor";
 
@@ -28,6 +32,8 @@ export async function startWorker(
   while (!signal?.aborted) {
     try {
       await processWalletProvisioningQueue();
+      await syncPendingWithdrawals();
+      await reconcileCircleTransactions();
       await processQueue();
     } catch (error) {
       console.error("Worker error:", error);

@@ -21,6 +21,7 @@ export async function GET() {
         circleTransactionId:
           walletTransactions.circleTransactionId,
         txHash: walletTransactions.txHash,
+        error: walletTransactions.error,
         source: walletTransactions.source,
         createdAt: walletTransactions.createdAt,
         confirmedAt: walletTransactions.confirmedAt,
