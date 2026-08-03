@@ -20,7 +20,6 @@ import { sendWalletTransaction } from
 import { ensureEscrowAllowance } from
   "@/modules/payments/application/ensure-escrow-allowance";
 import {
-  forbidden,
   invalidInput,
   notFound,
 } from "@/shared/errors/application-error";
@@ -30,6 +29,8 @@ import type { CreateTaskInput } from
   "./parse-create-task";
 import { requireActiveUserWallet } from
   "@/modules/identity/application/current-wallet";
+import { assertResourceOwner } from
+  "@/modules/identity/domain/ownership";
 
 export async function createPaidTask(
   userId: string,
@@ -45,9 +46,7 @@ export async function createPaidTask(
     throw notFound("Worker not found");
   }
 
-  if (worker.userId !== userId) {
-    throw forbidden("Worker does not belong to this user");
-  }
+  assertResourceOwner(userId, worker.userId);
 
   if (worker.status !== "active") {
     throw invalidInput("Worker is not active");

@@ -10,44 +10,16 @@ import {
   wallets,
 } from "@/db/schema";
 import { db } from "@/lib/db";
-
-type SupportedUserEvent = Extract<
-  WebhookEvent,
-  {
-    type: "user.created" | "user.updated" | "user.deleted";
-  }
->;
+import {
+  canApplyClerkUserUpsert,
+  clerkUserProfile,
+  isCompletedWebhook,
+} from "@/modules/identity/domain/clerk-user-event";
 
 export type ProcessClerkWebhookResult = {
   duplicate: boolean;
   handled: boolean;
 };
-
-function userProfile(
-  event: Extract<
-    SupportedUserEvent,
-    { type: "user.created" | "user.updated" }
-  >
-) {
-  const data = event.data;
-  const email =
-    data.email_addresses.find(
-      (candidate) => candidate.id === data.primary_email_address_id
-    )?.email_address ?? data.email_addresses[0]?.email_address;
-
-  if (!email) {
-    throw new Error(`Clerk ${event.type} event has no email address`);
-  }
-
-  return {
-    clerkId: data.id,
-    email,
-    name:
-      `${data.first_name ?? ""} ${data.last_name ?? ""}`.trim() ||
-      null,
-    imageUrl: data.image_url ?? null,
-  };
-}
 
 export async function processClerkWebhook(
   eventId: string,
@@ -68,7 +40,7 @@ export async function processClerkWebhook(
       .where(eq(clerkWebhookEvents.clerkEventId, eventId))
       .limit(1);
 
-    if (existingReceipt?.status === "completed") {
+    if (isCompletedWebhook(existingReceipt?.status)) {
       return { duplicate: true, handled: true };
     }
 
@@ -93,7 +65,41 @@ export async function processClerkWebhook(
     let handled = true;
 
     if (event.type === "user.created" || event.type === "user.updated") {
-      const profile = userProfile(event);
+      const profile = clerkUserProfile(event);
+      const [existingUser] = await transaction
+        .select({
+          id: users.id,
+          status: users.status,
+        })
+        .from(users)
+        .where(eq(users.clerkId, profile.clerkId))
+        .limit(1);
+
+      // A profile update must never undo a previously processed deletion.
+      if (!canApplyClerkUserUpsert(existingUser?.status)) {
+        await transaction.insert(securityEvents).values({
+          userId: existingUser.id,
+          clerkId: profile.clerkId,
+          eventType: "identity.deleted_user_event_ignored",
+          outcome: "success",
+          metadata: {
+            clerkEventId: eventId,
+            clerkEventType: event.type,
+          },
+        });
+
+        await transaction
+          .update(clerkWebhookEvents)
+          .set({
+            status: "completed",
+            processedAt: new Date(),
+            updatedAt: new Date(),
+          })
+          .where(eq(clerkWebhookEvents.clerkEventId, eventId));
+
+        return { duplicate: false, handled: true };
+      }
+
       const [user] = await transaction
         .insert(users)
         .values({
@@ -107,8 +113,6 @@ export async function processClerkWebhook(
             email: profile.email,
             name: profile.name,
             imageUrl: profile.imageUrl,
-            status: "active",
-            deletedAt: null,
             updatedAt: new Date(),
           },
         })
