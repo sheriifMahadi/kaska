@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 
 import { MarketplaceHeader } from "./marketplace-header";
 import { MarketplaceToolbar } from "./marketplace-toolbar";
@@ -9,17 +9,21 @@ import { AgentGrid } from "./agent-grid";
 type Agent = {
   id: string;
   name: string;
-  description: string | null;
-  type: string;
-  pricingModel: "task" | "hour";
-  taskPrice: string | null;
-  hourlyRate: string | null;
-  isActive: boolean;
+  slug: string;
+  description: string;
+  capabilities: string[];
+  pricingType: "fixed_per_run";
+  price: string;
+  supportsOneTime: boolean;
+  supportsRecurring: boolean;
 };
 
-export function AgentsClient() {
-  const [agents, setAgents] = useState<Agent[]>([]);
-  const [loading, setLoading] = useState(true);
+type Props = {
+  initialAgents: Agent[];
+};
+
+export function AgentsClient({ initialAgents }: Props) {
+  const [agents, setAgents] = useState<Agent[]>(initialAgents);
 
   const [search, setSearch] = useState("");
 
@@ -28,23 +32,6 @@ export function AgentsClient() {
 
   const [message, setMessage] =
     useState<string | null>(null);
-
-  useEffect(() => {
-    async function loadAgents() {
-      try {
-        const res = await fetch("/api/agents");
-        const data = await res.json();
-
-        setAgents(data);
-      } catch (err) {
-        console.error(err);
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    loadAgents();
-  }, []);
 
   async function hireAgent(agentId: string) {
   setCreatingTaskId(agentId);
@@ -93,14 +80,6 @@ export function AgentsClient() {
     );
   }, [agents, search]);
 
-  if (loading) {
-    return (
-      <div className="p-8 text-zinc-400">
-        Loading marketplace...
-      </div>
-    );
-  }
-
   return (
     <div className="min-h-screen bg-[#050505] p-8">
 
@@ -117,11 +96,17 @@ export function AgentsClient() {
         </div>
       )}
 
-      <AgentGrid
-        agents={filteredAgents}
-        creatingTaskId={creatingTaskId}
-        onHire={hireAgent}
-      />
+      {filteredAgents.length === 0 ? (
+        <div className="rounded-2xl border border-zinc-800 bg-zinc-950 p-8 text-center text-zinc-400">
+          No active agents match your search.
+        </div>
+      ) : (
+        <AgentGrid
+          agents={filteredAgents}
+          creatingTaskId={creatingTaskId}
+          onHire={hireAgent}
+        />
+      )}
     </div>
   );
 }

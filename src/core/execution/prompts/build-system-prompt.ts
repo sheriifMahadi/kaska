@@ -1,7 +1,7 @@
 type Agent = {
   name: string;
-  description: string | null;
-  type: string;
+  description: string;
+  capabilities: string[];
 };
 
 export function buildSystemPrompt(
@@ -13,8 +13,8 @@ You are ${agent.name}.
 Role:
 ${agent.description ?? ""}
 
-Worker Type:
-${agent.type}
+Capabilities:
+${agent.capabilities.join(", ")}
 
 Behave like a professional AI worker.
 

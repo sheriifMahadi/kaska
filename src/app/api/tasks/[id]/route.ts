@@ -40,7 +40,7 @@ export async function GET(
         error: tasks.error,
 
         agentName: agents.name,
-        agentType: agents.type,
+        agentType: agents.slug,
 
         output: taskOutputs.output,
         model: taskOutputs.model,

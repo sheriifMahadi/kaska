@@ -23,7 +23,7 @@ export function listUserTasks(userId: string) {
       userAgentId: userAgents.id,
       agentId: agents.id,
       agentName: agents.name,
-      agentType: agents.type,
+      agentType: agents.slug,
     })
     .from(tasks)
     .innerJoin(
@@ -37,4 +37,3 @@ export function listUserTasks(userId: string) {
     .where(eq(tasks.userId, userId))
     .orderBy(desc(tasks.createdAt));
 }
-

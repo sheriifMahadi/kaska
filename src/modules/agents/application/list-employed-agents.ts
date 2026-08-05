@@ -10,16 +10,19 @@ export function listEmployedAgents(userId: string) {
       userAgentId: userAgents.id,
       createdAt: userAgents.createdAt,
       status: userAgents.status,
-      budget: userAgents.budget,
-      completedTasks: userAgents.completedTasks,
+      perRunLimit: userAgents.perRunLimit,
+      dailyLimit: userAgents.dailyLimit,
+      monthlyLimit: userAgents.monthlyLimit,
       totalSpent: userAgents.totalSpent,
       agentId: agents.id,
       name: agents.name,
+      slug: agents.slug,
       description: agents.description,
-      type: agents.type,
-      pricingModel: agents.pricingModel,
-      taskPrice: agents.taskPrice,
-      hourlyRate: agents.hourlyRate,
+      capabilities: agents.capabilities,
+      pricingType: agents.pricingType,
+      price: agents.price,
+      supportsOneTime: agents.supportsOneTime,
+      supportsRecurring: agents.supportsRecurring,
     })
     .from(userAgents)
     .innerJoin(
@@ -28,4 +31,3 @@ export function listEmployedAgents(userId: string) {
     )
     .where(eq(userAgents.userId, userId));
 }
-

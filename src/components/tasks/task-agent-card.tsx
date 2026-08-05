@@ -6,17 +6,20 @@ type UserAgent = {
   userAgentId: string;
   hiredAt: string;
   status: string;
-  budget: string | null;
-  completedTasks: number;
+  perRunLimit: string | null;
+  dailyLimit: string | null;
+  monthlyLimit: string | null;
   totalSpent: string | null;
 
   agentId: string;
   name: string;
-  description: string | null;
-  type: string;
-  pricingModel: "task" | "hour";
-  taskPrice: string | null;
-  hourlyRate: string | null;
+  slug: string;
+  description: string;
+  capabilities: string[];
+  pricingType: "fixed_per_run";
+  price: string;
+  supportsOneTime: boolean;
+  supportsRecurring: boolean;
 };
 
 type Props = {
@@ -52,25 +55,25 @@ export function TaskAgentCard({ agent }: Props) {
 
       <div className="mt-6 grid grid-cols-2 gap-4">
         <div className="rounded-lg bg-zinc-900 p-3">
-          <p className="text-xs text-zinc-500">Type</p>
+          <p className="text-xs text-zinc-500">Capabilities</p>
           <p className="mt-1 text-white capitalize">
-            {agent.type}
+            {agent.capabilities.join(", ")}
           </p>
         </div>
 
         <div className="rounded-lg bg-zinc-900 p-3">
-          <p className="text-xs text-zinc-500">Budget</p>
+          <p className="text-xs text-zinc-500">Monthly Limit</p>
           <p className="mt-1 text-white">
-            {agent.budget ?? "—"} USDC
+            {agent.monthlyLimit ?? "—"} USDC
           </p>
         </div>
 
         <div className="rounded-lg bg-zinc-900 p-3">
           <p className="text-xs text-zinc-500">
-            Completed Tasks
+            Price Per Run
           </p>
           <p className="mt-1 text-white">
-            {agent.completedTasks}
+            {agent.price} USDC
           </p>
         </div>
 

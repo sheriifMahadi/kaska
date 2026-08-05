@@ -10,17 +10,20 @@ type UserAgent = {
   userAgentId: string;
   hiredAt: string;
   status: string;
-  budget: string |null;
-  completedTasks: number;
+  perRunLimit: string | null;
+  dailyLimit: string | null;
+  monthlyLimit: string | null;
   totalSpent: string |null;
 
   agentId: string;
   name: string;
-  description: string |null;
-  type: string;
-  pricingModel: "task" | "hour";
-  taskPrice: string |null;
-  hourlyRate: string |null;
+  slug: string;
+  description: string;
+  capabilities: string[];
+  pricingType: "fixed_per_run";
+  price: string;
+  supportsOneTime: boolean;
+  supportsRecurring: boolean;
 };
 
 type Task = {

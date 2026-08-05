@@ -30,6 +30,11 @@ import type {
   WalletTransactionStatus,
   WalletTransactionType,
 } from "@/modules/wallets/domain/wallet-transaction";
+import type {
+  AgentExecutionProvider,
+  AgentPricingType,
+  EmploymentStatus,
+} from "@/modules/agents/domain/agent";
 
 /* ---------------------------
    USERS
@@ -276,36 +281,48 @@ export const securityEvents = pgTable(
 );
 
 
-export const agents = pgTable("agents", {
-  id: uuid("id").defaultRandom().primaryKey(),
-
-  name: text("name").notNull(),
-  description: text("description"),
-
-  type: text("type").notNull(),
-  // research | content | seo | social
-
-  // pricing model (IMPORTANT)
-  pricingModel: text("pricing_model").notNull(),
-  // "task" | "hour"
-
-  // per-task pricing (USDC)
-  taskPrice: numeric("task_price", {
-    precision: 10,
-    scale: 2,
-  }),
-
-  // per-hour pricing (USDC)
-  hourlyRate: numeric("hourly_rate", {
-    precision: 10,
-    scale: 2,
-  }),
-
-  // future-proofing (important for marketplace)
-  isActive: boolean("is_active").default(true),
-
-  createdAt: timestamp("created_at").defaultNow(),
-});
+export const agents = pgTable(
+  "agents",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    name: text("name").notNull(),
+    slug: text("slug").notNull(),
+    description: text("description").notNull(),
+    capabilities: jsonb("capabilities")
+      .$type<string[]>()
+      .notNull()
+      .default([]),
+    executionProvider: text("execution_provider")
+      .$type<AgentExecutionProvider>()
+      .notNull(),
+    pricingType: text("pricing_type")
+      .$type<AgentPricingType>()
+      .notNull()
+      .default("fixed_per_run"),
+    price: numeric("price", { precision: 18, scale: 6 }).notNull(),
+    supportsOneTime: boolean("supports_one_time")
+      .notNull()
+      .default(true),
+    supportsRecurring: boolean("supports_recurring")
+      .notNull()
+      .default(false),
+    isActive: boolean("is_active").notNull().default(true),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (table) => ({
+    slugIdx: uniqueIndex("agent_slug_idx").on(table.slug),
+    activeIdx: index("agent_active_idx").on(table.isActive),
+    priceCheck: check(
+      "agent_active_price_check",
+      sql`not ${table.isActive} or ${table.price} > 0`
+    ),
+    scheduleCheck: check(
+      "agent_schedule_support_check",
+      sql`${table.supportsOneTime} or ${table.supportsRecurring}`
+    ),
+  })
+);
 
 export const userAgents = pgTable(
   "user_agents",
@@ -325,31 +342,61 @@ export const userAgents = pgTable(
       }),
 
     status: text("status")
+      .$type<EmploymentStatus>()
       .notNull()
       .default("active"),
-    // active | paused | archived
 
-    budget: numeric("budget", {
-      precision: 10,
-      scale: 2,
-    }).default("0"),
+    perRunLimit: numeric("per_run_limit", {
+      precision: 18,
+      scale: 6,
+    }),
 
-    completedTasks: text("completed_tasks")
-      .notNull()
-      .default("0"),
+    dailyLimit: numeric("daily_limit", {
+      precision: 18,
+      scale: 6,
+    }),
+
+    monthlyLimit: numeric("monthly_limit", {
+      precision: 18,
+      scale: 6,
+    }),
 
     totalSpent: numeric("total_spent", {
-      precision: 10,
-      scale: 2,
-    }).default("0"),
+      precision: 18,
+      scale: 6,
+    }).notNull().default("0"),
 
     createdAt: timestamp("created_at")
       .defaultNow()
       .notNull(),
+
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+    pausedAt: timestamp("paused_at"),
+    archivedAt: timestamp("archived_at"),
   },
   (table) => ({
     userIdx: index("user_agent_user_idx").on(table.userId),
     agentIdx: index("user_agent_agent_idx").on(table.agentId),
+    userAgentIdx: uniqueIndex("user_agent_unique_idx").on(
+      table.userId,
+      table.agentId
+    ),
+    statusIdx: index("user_agent_status_idx").on(
+      table.userId,
+      table.status
+    ),
+    statusCheck: check(
+      "user_agent_status_check",
+      sql`${table.status} in ('active', 'paused', 'archived')`
+    ),
+    limitsCheck: check(
+      "user_agent_limits_check",
+      sql`(${table.perRunLimit} is null or ${table.perRunLimit} >= 0)
+        and (${table.dailyLimit} is null or ${table.dailyLimit} >= 0)
+        and (${table.monthlyLimit} is null or ${table.monthlyLimit} >= 0)
+        and (${table.perRunLimit} is null or ${table.dailyLimit} is null or ${table.perRunLimit} <= ${table.dailyLimit})
+        and (${table.dailyLimit} is null or ${table.monthlyLimit} is null or ${table.dailyLimit} <= ${table.monthlyLimit})`
+    ),
   })
 );
 export const tasks = pgTable(

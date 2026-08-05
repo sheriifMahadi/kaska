@@ -62,16 +62,16 @@ export async function createPaidTask(
     throw notFound("Agent not found");
   }
 
-  if (agent.pricingModel !== "task" || !agent.taskPrice) {
+  if (!agent.isActive || !agent.supportsOneTime) {
     throw invalidInput(
-      "This agent does not support fixed-price tasks"
+      "This agent does not accept one-time tasks"
     );
   }
 
   let price;
 
   try {
-    price = parsePositiveUsdc(agent.taskPrice);
+    price = parsePositiveUsdc(agent.price);
   } catch {
     throw invalidInput("Agent has an invalid task price");
   }

@@ -1,13 +1,17 @@
 "use client";
 
+import Link from "next/link";
+
 export type Agent = {
   id: string;
   name: string;
-  description: string | null;
-  type: string;
-  pricingModel: "task" | "hour";
-  taskPrice: string | null;
-  hourlyRate: string | null;
+  slug: string;
+  description: string;
+  capabilities: string[];
+  pricingType: "fixed_per_run";
+  price: string;
+  supportsOneTime: boolean;
+  supportsRecurring: boolean;
 };
 
 interface Props {
@@ -30,13 +34,10 @@ export function AgentCard({
           </h3>
 
           <p className="text-sm text-violet-400">
-            {agent.type}
+            {agent.capabilities.join(" · ")}
           </p>
         </div>
 
-        <div className="rounded-full bg-violet-600/20 px-3 py-1 text-sm text-violet-300">
-          ⭐ 4.9
-        </div>
       </div>
 
       <p className="mb-6 text-sm leading-6 text-zinc-400">
@@ -44,30 +45,42 @@ export function AgentCard({
       </p>
 
       <div className="mb-6">
-        {agent.pricingModel === "task" ? (
-          <p className="text-lg font-bold text-white">
-            ${agent.taskPrice}
-            <span className="ml-1 text-sm text-zinc-500">
-              / task
-            </span>
-          </p>
-        ) : (
-          <p className="text-lg font-bold text-white">
-            ${agent.hourlyRate}
-            <span className="ml-1 text-sm text-zinc-500">
-              / hour
-            </span>
-          </p>
+        <p className="text-lg font-bold text-white">
+          {agent.price} USDC
+          <span className="ml-1 text-sm text-zinc-500">
+            / run
+          </span>
+        </p>
+      </div>
+
+      <div className="mb-6 flex flex-wrap gap-2 text-xs">
+        {agent.supportsOneTime && (
+          <span className="rounded-full bg-zinc-800 px-3 py-1 text-zinc-300">
+            One-time
+          </span>
+        )}
+        {agent.supportsRecurring && (
+          <span className="rounded-full bg-zinc-800 px-3 py-1 text-zinc-300">
+            Recurring
+          </span>
         )}
       </div>
 
-      <button
-        onClick={onHire}
-        disabled={loading}
-        className="w-full rounded-xl bg-violet-600 py-3 font-medium text-white transition hover:bg-violet-500 disabled:opacity-50"
-      >
-        {loading ? "Hiring..." : "Hire Worker"}
-      </button>
+      <div className="flex gap-3">
+        <Link
+          href={`/agents/${agent.slug}`}
+          className="flex-1 rounded-xl border border-zinc-700 py-3 text-center font-medium text-zinc-200 transition hover:border-violet-500"
+        >
+          View details
+        </Link>
+        <button
+          onClick={onHire}
+          disabled={loading}
+          className="flex-1 rounded-xl bg-violet-600 py-3 font-medium text-white transition hover:bg-violet-500 disabled:opacity-50"
+        >
+          {loading ? "Employing..." : "Employ"}
+        </button>
+      </div>
     </div>
   );
 }

@@ -1,14 +1,14 @@
 import { NextResponse } from "next/server";
-import { db } from "@/lib/db";
-import { agents } from "@/db/schema";
 import { requireCurrentUser } from
   "@/modules/identity/application/current-user";
+import { listMarketplaceAgents } from
+  "@/modules/agents/application/list-marketplace-agents";
 import { errorResponse } from "@/shared/http/error-response";
 
 export async function GET() {
   try {
     await requireCurrentUser();
-    const data = await db.select().from(agents);
+    const data = await listMarketplaceAgents();
 
     return NextResponse.json(data);
   } catch (error) {

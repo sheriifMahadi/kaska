@@ -10,8 +10,9 @@
     "build": "next build",
     "start": "next start",
     "worker": "tsx worker/main.ts",
+    "seed:agents": "tsx src/db/seed/agents.ts",
     "typecheck": "next typegen && tsc --noEmit",
-    "test": "tsx --test src/modules/payments/domain/usdc.test.ts src/modules/tasks/application/parse-create-task.test.ts",
+    "test": "tsx --test src/modules/agents/domain/agent.test.ts src/modules/identity/application/provision-circle-wallet.test.ts src/modules/identity/domain/clerk-user-event.test.ts src/modules/identity/domain/ownership.test.ts src/modules/identity/domain/wallet-provisioning-policy.test.ts src/modules/payments/domain/usdc.test.ts src/modules/tasks/application/parse-create-task.test.ts src/modules/wallets/domain/wallet-balance.test.ts src/modules/wallets/domain/wallet-transaction.test.ts src/modules/wallets/domain/withdrawal.test.ts",
     "lint": "eslint",
     "check": "npm run typecheck && npm run lint && npm test && npm run build"
   },
