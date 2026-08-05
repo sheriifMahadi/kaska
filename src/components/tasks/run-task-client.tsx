@@ -8,9 +8,9 @@ type Agent = {
   userAgentId: string;
   agentId: string;
   name: string;
-  description: string | null;
-  type: string;
-  status: string;
+  description: string;
+  capabilities: string[];
+  status: "active";
 };
 
 type Props = {
@@ -56,7 +56,15 @@ export function RunTaskClient({ userAgentId }: Props) {
     );
   }
 
+  if (agent.status !== "active") {
+    return (
+      <div className="p-8 text-amber-300">
+        This agent is {agent.status} and cannot accept new work.
+      </div>
+    );
+  }
+
   return (
-    <TaskForm agent={agent} />
+    <TaskForm agent={{ ...agent, status: "active" }} />
   );
 }

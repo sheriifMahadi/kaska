@@ -6,9 +6,9 @@ type Agent = {
   userAgentId: string;
   agentId: string;
   name: string;
-  description: string | null;
-  type: string;
-  status: string;
+  description: string;
+  capabilities: string[];
+  status: "active";
 };
 
 type Props = {
@@ -52,10 +52,12 @@ export function TaskForm({ agent }: Props) {
       setPrompt("");
       setPriority("normal");
 
-      setMessage("✅ Task queued successfully.");
+      setMessage("Task queued successfully.");
     } catch (err) {
       console.error(err);
-      setMessage("❌ Failed to queue task.");
+      setMessage(
+        err instanceof Error ? err.message : "Failed to queue task."
+      );
     } finally {
       setLoading(false);
     }

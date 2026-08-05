@@ -2,7 +2,7 @@ import "server-only";
 
 import { and, eq } from "drizzle-orm";
 
-import { agents, userAgents } from "@/db/schema";
+import { userAgents } from "@/db/schema";
 import { db } from "@/lib/db";
 import {
   canTransitionEmployment,
@@ -23,10 +23,8 @@ export async function changeEmploymentStatus(
       .select({
         id: userAgents.id,
         status: userAgents.status,
-        agentActive: agents.isActive,
       })
       .from(userAgents)
-      .innerJoin(agents, eq(agents.id, userAgents.agentId))
       .where(
         and(
           eq(userAgents.id, employmentId),
@@ -41,13 +39,9 @@ export async function changeEmploymentStatus(
     if (!canTransitionEmployment(employment.status, nextStatus)) {
       throw conflict(
         employment.status === "archived"
-          ? "Archived employment cannot be reactivated"
+          ? "Agent is already archived"
           : `Employment is already ${employment.status}`
       );
-    }
-
-    if (nextStatus === "active" && !employment.agentActive) {
-      throw conflict("Inactive agents cannot be activated");
     }
 
     const now = new Date();
@@ -55,8 +49,7 @@ export async function changeEmploymentStatus(
       .update(userAgents)
       .set({
         status: nextStatus,
-        pausedAt: nextStatus === "paused" ? now : null,
-        archivedAt: nextStatus === "archived" ? now : null,
+        archivedAt: now,
         updatedAt: now,
       })
       .where(

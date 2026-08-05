@@ -17,7 +17,7 @@ type Agent = {
   supportsOneTime: boolean;
   supportsRecurring: boolean;
   employmentId: string | null;
-  employmentStatus: "active" | "paused" | "archived" | null;
+  employmentStatus: "active" | "archived" | null;
 };
 
 type Props = {

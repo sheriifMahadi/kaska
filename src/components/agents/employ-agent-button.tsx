@@ -4,7 +4,7 @@ import { useState } from "react";
 
 type Props = {
   agentId: string;
-  employmentStatus: "active" | "paused" | "archived" | null;
+  employmentStatus: "active" | "archived" | null;
 };
 
 export function EmployAgentButton({
@@ -46,17 +46,17 @@ export function EmployAgentButton({
     <div>
       <button
         type="button"
-        disabled={loading || Boolean(employmentStatus) || employed}
+        disabled={loading || employmentStatus === "active" || employed}
         onClick={employ}
         className="rounded-xl bg-violet-600 px-6 py-3 font-medium text-white hover:bg-violet-500 disabled:opacity-60"
       >
         {loading
           ? "Employing..."
-          : employmentStatus
-            ? `Already employed · ${employmentStatus}`
+          : employmentStatus === "active"
+            ? "Already employed"
             : employed
               ? "Employed"
-              : "Employ agent"}
+              : "Employ"}
       </button>
       {message && (
         <p aria-live="polite" className="mt-3 text-sm text-zinc-400">

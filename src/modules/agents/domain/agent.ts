@@ -14,7 +14,6 @@ export type AgentPricingType =
 
 export const EMPLOYMENT_STATUSES = [
   "active",
-  "paused",
   "archived",
 ] as const;
 
@@ -38,8 +37,5 @@ export function canTransitionEmployment(
   current: EmploymentStatus,
   next: EmploymentStatus
 ) {
-  if (current === "archived" || current === next) return false;
-  if (next === "archived") return true;
-  return current === "active" && next === "paused" ||
-    current === "paused" && next === "active";
+  return current === "active" && next === "archived";
 }

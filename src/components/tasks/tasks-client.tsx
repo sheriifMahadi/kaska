@@ -8,11 +8,8 @@ import { TaskList } from "./task-list";
 
 type UserAgent = {
   userAgentId: string;
-  hiredAt: string;
-  status: string;
-  perRunLimit: string | null;
-  dailyLimit: string | null;
-  monthlyLimit: string | null;
+  createdAt: string;
+  status: "active";
   totalSpent: string |null;
 
   agentId: string;
@@ -115,6 +112,7 @@ export function TasksClient() {
               <TaskAgentCard
                 key={agent.userAgentId}
                 agent={agent}
+                onUpdated={loadData}
               />
             ))}
           </div>

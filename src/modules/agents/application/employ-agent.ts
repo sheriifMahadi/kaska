@@ -1,6 +1,6 @@
 import "server-only";
 
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { agents, userAgents } from "@/db/schema";
 import { db } from "@/lib/db";
 import {
@@ -22,6 +22,36 @@ export async function employAgent(
 
     if (!agent || !agent.isActive) {
       throw notFound("Agent not found");
+    }
+
+    const [existingEmployment] = await transaction
+      .select()
+      .from(userAgents)
+      .where(
+        and(
+          eq(userAgents.userId, userId),
+          eq(userAgents.agentId, agentId)
+        )
+      )
+      .limit(1)
+      .for("update");
+
+    if (existingEmployment?.status === "active") {
+      throw conflict("Agent already employed");
+    }
+
+    if (existingEmployment?.status === "archived") {
+      const [reactivated] = await transaction
+        .update(userAgents)
+        .set({
+          status: "active",
+          archivedAt: null,
+          updatedAt: new Date(),
+        })
+        .where(eq(userAgents.id, existingEmployment.id))
+        .returning();
+
+      return reactivated;
     }
 
     const [employment] = await transaction

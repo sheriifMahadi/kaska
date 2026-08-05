@@ -346,21 +346,6 @@ export const userAgents = pgTable(
       .notNull()
       .default("active"),
 
-    perRunLimit: numeric("per_run_limit", {
-      precision: 18,
-      scale: 6,
-    }),
-
-    dailyLimit: numeric("daily_limit", {
-      precision: 18,
-      scale: 6,
-    }),
-
-    monthlyLimit: numeric("monthly_limit", {
-      precision: 18,
-      scale: 6,
-    }),
-
     totalSpent: numeric("total_spent", {
       precision: 18,
       scale: 6,
@@ -371,7 +356,6 @@ export const userAgents = pgTable(
       .notNull(),
 
     updatedAt: timestamp("updated_at").defaultNow().notNull(),
-    pausedAt: timestamp("paused_at"),
     archivedAt: timestamp("archived_at"),
   },
   (table) => ({
@@ -387,15 +371,7 @@ export const userAgents = pgTable(
     ),
     statusCheck: check(
       "user_agent_status_check",
-      sql`${table.status} in ('active', 'paused', 'archived')`
-    ),
-    limitsCheck: check(
-      "user_agent_limits_check",
-      sql`(${table.perRunLimit} is null or ${table.perRunLimit} >= 0)
-        and (${table.dailyLimit} is null or ${table.dailyLimit} >= 0)
-        and (${table.monthlyLimit} is null or ${table.monthlyLimit} >= 0)
-        and (${table.perRunLimit} is null or ${table.dailyLimit} is null or ${table.perRunLimit} <= ${table.dailyLimit})
-        and (${table.dailyLimit} is null or ${table.monthlyLimit} is null or ${table.dailyLimit} <= ${table.monthlyLimit})`
+      sql`${table.status} in ('active', 'archived')`
     ),
   })
 );
