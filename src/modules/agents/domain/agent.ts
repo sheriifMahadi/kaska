@@ -20,6 +20,12 @@ export const EMPLOYMENT_STATUSES = [
 export type EmploymentStatus =
   (typeof EMPLOYMENT_STATUSES)[number];
 
+export type EmploymentAction =
+  | "create"
+  | "reactivate"
+  | "already_active"
+  | "unavailable";
+
 export function isEmploymentStatus(
   value: unknown
 ): value is EmploymentStatus {
@@ -38,4 +44,14 @@ export function canTransitionEmployment(
   next: EmploymentStatus
 ) {
   return current === "active" && next === "archived";
+}
+
+export function employmentAction(
+  agentIsActive: boolean,
+  currentStatus: EmploymentStatus | null
+): EmploymentAction {
+  if (!agentIsActive) return "unavailable";
+  if (currentStatus === "active") return "already_active";
+  if (currentStatus === "archived") return "reactivate";
+  return "create";
 }

@@ -7,6 +7,7 @@ import {
   conflict,
   notFound,
 } from "@/shared/errors/application-error";
+import { employmentAction } from "@/modules/agents/domain/agent";
 
 export async function employAgent(
   userId: string,
@@ -20,7 +21,7 @@ export async function employAgent(
       .limit(1)
       .for("share");
 
-    if (!agent || !agent.isActive) {
+    if (!agent) {
       throw notFound("Agent not found");
     }
 
@@ -36,11 +37,20 @@ export async function employAgent(
       .limit(1)
       .for("update");
 
-    if (existingEmployment?.status === "active") {
+    const action = employmentAction(
+      agent.isActive,
+      existingEmployment?.status ?? null
+    );
+
+    if (action === "unavailable") {
+      throw notFound("Agent not found");
+    }
+
+    if (action === "already_active") {
       throw conflict("Agent already employed");
     }
 
-    if (existingEmployment?.status === "archived") {
+    if (action === "reactivate" && existingEmployment) {
       const [reactivated] = await transaction
         .update(userAgents)
         .set({
