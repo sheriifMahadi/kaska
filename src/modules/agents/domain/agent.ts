@@ -21,6 +21,25 @@ export const EMPLOYMENT_STATUSES = [
 export type EmploymentStatus =
   (typeof EMPLOYMENT_STATUSES)[number];
 
+export function isEmploymentStatus(
+  value: unknown
+): value is EmploymentStatus {
+  return (
+    typeof value === "string" &&
+    EMPLOYMENT_STATUSES.some((status) => status === value)
+  );
+}
+
 export function supportsNewWork(status: EmploymentStatus) {
   return status === "active";
+}
+
+export function canTransitionEmployment(
+  current: EmploymentStatus,
+  next: EmploymentStatus
+) {
+  if (current === "archived" || current === next) return false;
+  if (next === "archived") return true;
+  return current === "active" && next === "paused" ||
+    current === "paused" && next === "active";
 }

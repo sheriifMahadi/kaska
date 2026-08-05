@@ -1,6 +1,6 @@
 import "server-only";
 
-import { and, eq } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { agents, userAgents } from "@/db/schema";
 import { db } from "@/lib/db";
 import {
@@ -12,36 +12,30 @@ export async function employAgent(
   userId: string,
   agentId: string
 ) {
-  const [agent] = await db
-    .select()
-    .from(agents)
-    .where(eq(agents.id, agentId))
-    .limit(1);
+  return db.transaction(async (transaction) => {
+    const [agent] = await transaction
+      .select()
+      .from(agents)
+      .where(eq(agents.id, agentId))
+      .limit(1)
+      .for("share");
 
-  if (!agent || !agent.isActive) {
-    throw notFound("Agent not found");
-  }
+    if (!agent || !agent.isActive) {
+      throw notFound("Agent not found");
+    }
 
-  const [existing] = await db
-    .select({ id: userAgents.id })
-    .from(userAgents)
-    .where(
-      and(
-        eq(userAgents.userId, userId),
-        eq(userAgents.agentId, agentId)
-      )
-    )
-    .limit(1);
+    const [employment] = await transaction
+      .insert(userAgents)
+      .values({ userId, agentId })
+      .onConflictDoNothing({
+        target: [userAgents.userId, userAgents.agentId],
+      })
+      .returning();
 
-  if (existing) {
-    throw conflict("Agent already employed");
-  }
+    if (!employment) {
+      throw conflict("Agent already employed");
+    }
 
-  const [employment] = await db
-    .insert(userAgents)
-    .values({ userId, agentId })
-    .returning();
-
-  return employment;
+    return employment;
+  });
 }
-

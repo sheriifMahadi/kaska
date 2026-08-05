@@ -6,8 +6,8 @@ import { requireCurrentUser } from
   "@/modules/identity/application/current-user";
 
 export default async function AgentsPage() {
-  await requireCurrentUser();
-  const agents = await listMarketplaceAgents();
+  const user = await requireCurrentUser();
+  const agents = await listMarketplaceAgents(user.id);
 
   return (
     <DashboardLayout>

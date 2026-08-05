@@ -2,8 +2,17 @@
 
 import { useState } from "react";
 
-export function EmployAgentButton({ agentId }: { agentId: string }) {
+type Props = {
+  agentId: string;
+  employmentStatus: "active" | "paused" | "archived" | null;
+};
+
+export function EmployAgentButton({
+  agentId,
+  employmentStatus,
+}: Props) {
   const [loading, setLoading] = useState(false);
+  const [employed, setEmployed] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
 
   async function employ() {
@@ -23,6 +32,7 @@ export function EmployAgentButton({ agentId }: { agentId: string }) {
       }
 
       setMessage("Agent added to your workforce.");
+      setEmployed(true);
     } catch (error) {
       setMessage(
         error instanceof Error ? error.message : "Agent could not be employed"
@@ -36,11 +46,17 @@ export function EmployAgentButton({ agentId }: { agentId: string }) {
     <div>
       <button
         type="button"
-        disabled={loading}
+        disabled={loading || Boolean(employmentStatus) || employed}
         onClick={employ}
         className="rounded-xl bg-violet-600 px-6 py-3 font-medium text-white hover:bg-violet-500 disabled:opacity-60"
       >
-        {loading ? "Employing..." : "Employ agent"}
+        {loading
+          ? "Employing..."
+          : employmentStatus
+            ? `Already employed · ${employmentStatus}`
+            : employed
+              ? "Employed"
+              : "Employ agent"}
       </button>
       {message && (
         <p aria-live="polite" className="mt-3 text-sm text-zinc-400">

@@ -7,8 +7,8 @@ import { errorResponse } from "@/shared/http/error-response";
 
 export async function GET() {
   try {
-    await requireCurrentUser();
-    const data = await listMarketplaceAgents();
+    const user = await requireCurrentUser();
+    const data = await listMarketplaceAgents(user.id);
 
     return NextResponse.json(data);
   } catch (error) {

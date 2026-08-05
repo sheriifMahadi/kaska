@@ -16,6 +16,8 @@ type Agent = {
   price: string;
   supportsOneTime: boolean;
   supportsRecurring: boolean;
+  employmentId: string | null;
+  employmentStatus: "active" | "paused" | "archived" | null;
 };
 
 type Props = {
@@ -54,7 +56,7 @@ export function AgentsClient({ initialAgents }: Props) {
       throw new Error(data.error ?? "Failed to hire agent");
     }
 
-    setMessage("✅ Agent hired successfully.");
+    setMessage("Agent added to your workforce.");
 
     // Refresh the marketplace state after hiring
     const agentsRes = await fetch("/api/agents");

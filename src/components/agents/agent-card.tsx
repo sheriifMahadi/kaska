@@ -12,6 +12,8 @@ export type Agent = {
   price: string;
   supportsOneTime: boolean;
   supportsRecurring: boolean;
+  employmentId: string | null;
+  employmentStatus: "active" | "paused" | "archived" | null;
 };
 
 interface Props {
@@ -75,10 +77,14 @@ export function AgentCard({
         </Link>
         <button
           onClick={onHire}
-          disabled={loading}
+          disabled={loading || Boolean(agent.employmentStatus)}
           className="flex-1 rounded-xl bg-violet-600 py-3 font-medium text-white transition hover:bg-violet-500 disabled:opacity-50"
         >
-          {loading ? "Employing..." : "Employ"}
+          {loading
+            ? "Employing..."
+            : agent.employmentStatus
+              ? `Employed · ${agent.employmentStatus}`
+              : "Employ"}
         </button>
       </div>
     </div>

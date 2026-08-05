@@ -13,9 +13,9 @@ type Props = {
 };
 
 export default async function AgentDetailPage({ params }: Props) {
-  await requireCurrentUser();
+  const user = await requireCurrentUser();
   const { slug } = await params;
-  const agent = await getMarketplaceAgentBySlug(slug);
+  const agent = await getMarketplaceAgentBySlug(user.id, slug);
 
   if (!agent) notFound();
 
@@ -69,7 +69,10 @@ export default async function AgentDetailPage({ params }: Props) {
           )}
         </div>
 
-        <EmployAgentButton agentId={agent.id} />
+        <EmployAgentButton
+          agentId={agent.id}
+          employmentStatus={agent.employmentStatus}
+        />
       </div>
     </DashboardLayout>
   );
