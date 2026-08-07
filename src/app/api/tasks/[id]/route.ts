@@ -16,6 +16,10 @@ import { cancelTask } from
   "@/modules/tasks/application/cancel-task";
 import { invalidInput } from
   "@/shared/errors/application-error";
+import { retryTask } from
+  "@/modules/tasks/application/retry-task";
+import { parseTaskId } from
+  "@/modules/tasks/domain/task-id";
 
 type Props = {
   params: Promise<{
@@ -28,7 +32,7 @@ export async function GET(
   { params }: Props
 ) {
   try {
-    const { id } = await params;
+    const id = parseTaskId((await params).id);
     const user = await requireCurrentUser();
 
     const rows = await db
@@ -44,6 +48,7 @@ export async function GET(
         completedAt: tasks.completedAt,
         failedAt: tasks.failedAt,
         cancelledAt: tasks.cancelledAt,
+        nextAttemptAt: tasks.nextAttemptAt,
         attemptCount: tasks.attemptCount,
         maxAttempts: tasks.maxAttempts,
         error: tasks.error,
@@ -116,15 +121,17 @@ export async function GET(
 
 export async function PATCH(request: Request, { params }: Props) {
   try {
-    const { id } = await params;
+    const id = parseTaskId((await params).id);
     const user = await requireCurrentUser();
     const body = await request.json();
 
-    if (body?.action !== "cancel") {
-      throw invalidInput("The supported task action is cancel");
+    if (body?.action === "cancel") {
+      return NextResponse.json(await cancelTask(user.id, id));
     }
-
-    return NextResponse.json(await cancelTask(user.id, id));
+    if (body?.action === "retry") {
+      return NextResponse.json(await retryTask(user.id, id));
+    }
+    throw invalidInput("The supported task actions are cancel and retry");
   } catch (error) {
     return errorResponse(error, "PATCH /api/tasks/[id]");
   }

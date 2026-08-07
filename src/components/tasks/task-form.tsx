@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 
 type Agent = {
   userAgentId: string;
@@ -16,6 +17,7 @@ type Props = {
 };
 
 export function TaskForm({ agent }: Props) {
+  const router = useRouter();
   const [title, setTitle] = useState("");
   const [prompt, setPrompt] = useState("");
   const [priority, setPriority] = useState("normal");
@@ -48,11 +50,7 @@ export function TaskForm({ agent }: Props) {
         throw new Error(data.error || "Failed");
       }
 
-      setTitle("");
-      setPrompt("");
-      setPriority("normal");
-
-      setMessage("Task queued successfully.");
+      router.push(`/tasks/${data.task.id}`);
     } catch (err) {
       console.error(err);
       setMessage(
@@ -128,7 +126,7 @@ export function TaskForm({ agent }: Props) {
 
         <button
           type="submit"
-          disabled={loading}
+          disabled={loading || title.trim().length < 3 || prompt.trim().length < 10}
           className="rounded-lg bg-violet-600 px-6 py-3 font-medium text-white transition hover:bg-violet-500 disabled:opacity-50"
         >
           {loading ? "Queueing..." : "Run Task"}
