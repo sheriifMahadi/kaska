@@ -38,8 +38,14 @@ export async function startWorker(signal?: AbortSignal) {
           const task = await claimNextTask(workerId);
           if (!task) break;
 
-          const execution = executeTask(task.id, workerId)
-            .catch((error) => console.error(`Task ${task.id} failed`, error))
+          const execution = executeTask({
+            taskId: task.task.id,
+            attemptId: task.attemptId,
+            attemptNumber: task.task.attemptCount,
+            maxAttempts: task.task.maxAttempts,
+            workerId,
+          })
+            .catch((error) => console.error(`Task ${task.task.id} failed`, error))
             .finally(() => activeTasks.delete(execution));
 
           activeTasks.add(execution);

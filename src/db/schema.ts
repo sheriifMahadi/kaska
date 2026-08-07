@@ -433,6 +433,15 @@ export const tasks = pgTable(
 
     lastHeartbeatAt: timestamp("last_heartbeat_at"),
 
+    executionProvider: text("execution_provider")
+      .$type<AgentExecutionProvider>(),
+
+    executionModel: text("execution_model"),
+
+    lastExecutionLatencyMs: integer("last_execution_latency_ms"),
+
+    nextAttemptAt: timestamp("next_attempt_at"),
+
     updatedAt: timestamp("updated_at").defaultNow().notNull(),
 
     createdAt: timestamp("created_at")
@@ -453,6 +462,11 @@ export const tasks = pgTable(
       table.leaseExpiresAt
     ),
 
+    retryIdx: index("task_retry_idx").on(
+      table.status,
+      table.nextAttemptAt
+    ),
+
     statusCheck: check(
       "task_status_check",
       sql`${table.status} in ('queued', 'running', 'completed', 'failed', 'cancelled', 'draft', 'escrow_pending', 'funds_locked', 'execution_succeeded', 'charge_pending', 'charged', 'escrow_failed', 'execution_failed', 'refund_pending', 'refunded', 'manual_review')`
@@ -465,6 +479,45 @@ export const tasks = pgTable(
 
     escrowTaskIdx: index("task_escrow_task_idx").on(
       table.escrowTaskId
+    ),
+  })
+);
+
+export const taskAttempts = pgTable(
+  "task_attempts",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    taskId: uuid("task_id")
+      .notNull()
+      .references(() => tasks.id, { onDelete: "cascade" }),
+    attemptNumber: integer("attempt_number").notNull(),
+    workerId: text("worker_id").notNull(),
+    status: text("status")
+      .$type<"running" | "completed" | "failed" | "abandoned">()
+      .notNull()
+      .default("running"),
+    provider: text("provider").$type<AgentExecutionProvider>(),
+    model: text("model"),
+    latencyMs: integer("latency_ms"),
+    errorCode: text("error_code"),
+    errorMessage: text("error_message"),
+    retryable: boolean("retryable"),
+    startedAt: timestamp("started_at").defaultNow().notNull(),
+    endedAt: timestamp("ended_at"),
+  },
+  (table) => ({
+    taskIdx: index("task_attempt_task_idx").on(table.taskId),
+    taskAttemptIdx: uniqueIndex("task_attempt_unique_idx").on(
+      table.taskId,
+      table.attemptNumber
+    ),
+    statusCheck: check(
+      "task_attempt_status_check",
+      sql`${table.status} in ('running', 'completed', 'failed', 'abandoned')`
+    ),
+    numberCheck: check(
+      "task_attempt_number_check",
+      sql`${table.attemptNumber} > 0`
     ),
   })
 );
@@ -484,7 +537,19 @@ export const taskOutputs = pgTable(
 
     model: text("model"),
 
+    provider: text("provider").$type<AgentExecutionProvider>(),
+
+    inputTokens: integer("input_tokens"),
+
+    outputTokens: integer("output_tokens"),
+
     tokens: numeric("tokens"),
+
+    latencyMs: integer("latency_ms"),
+
+    finishReason: text("finish_reason"),
+
+    format: text("format").notNull().default("markdown_v1"),
 
     cost: numeric("cost", {
       precision: 10,

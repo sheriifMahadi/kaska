@@ -25,6 +25,8 @@ export function listUserTasks(userId: string) {
       attemptCount: tasks.attemptCount,
       maxAttempts: tasks.maxAttempts,
       error: tasks.error,
+      errorCode: tasks.errorCode,
+      nextAttemptAt: tasks.nextAttemptAt,
       userAgentId: userAgents.id,
       agentId: agents.id,
       agentName: agents.name,

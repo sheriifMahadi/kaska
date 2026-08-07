@@ -46,3 +46,7 @@ export function isTaskPriority(
     taskPriorities.includes(value as TaskPriority)
   );
 }
+
+export function canCancelTask(status: TaskStatus) {
+  return status === "queued";
+}

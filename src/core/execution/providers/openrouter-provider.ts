@@ -6,6 +6,8 @@ import {
 } from "./ai-provider";
 
 export class OpenRouterProvider implements AIProvider {
+  readonly name = "openrouter" as const;
+
   async execute(
     request: ExecutionRequest
   ): Promise<ExecutionResult> {
@@ -28,8 +30,11 @@ export class OpenRouterProvider implements AIProvider {
         response.choices[0].message.content ??
         "No response generated.",
       model: response.model,
-      tokens: response.usage?.total_tokens ?? 0,
-      cost: "0",
+      inputTokens: response.usage?.prompt_tokens ?? 0,
+      outputTokens: response.usage?.completion_tokens ?? 0,
+      totalTokens: response.usage?.total_tokens ?? 0,
+      cost: null,
+      finishReason: response.choices[0]?.finish_reason ?? null,
     };
   }
 }

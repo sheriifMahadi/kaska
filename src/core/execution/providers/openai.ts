@@ -6,6 +6,8 @@ import {
 } from "./ai-provider";
 
 export class OpenAIProvider implements AIProvider {
+  readonly name = "openai" as const;
+
   async execute(
     request: ExecutionRequest
   ): Promise<ExecutionResult> {
@@ -28,9 +30,11 @@ export class OpenAIProvider implements AIProvider {
         response.output_text ??
         "No output generated.",
       model: response.model,
-      tokens:
-        response.usage?.total_tokens ?? 0,
-      cost: "0",
+      inputTokens: response.usage?.input_tokens ?? 0,
+      outputTokens: response.usage?.output_tokens ?? 0,
+      totalTokens: response.usage?.total_tokens ?? 0,
+      cost: null,
+      finishReason: response.status ?? null,
     };
   }
 }
