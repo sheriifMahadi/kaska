@@ -1,107 +1,60 @@
-import { and, asc, eq } from "drizzle-orm";
+import { randomUUID } from "node:crypto";
 
-import { db } from "@/lib/db";
-import { tasks } from "@/db/schema";
 import { processWalletProvisioningQueue } from
   "@/modules/identity/application/process-wallet-provisioning";
-import { syncPendingWithdrawals } from
-  "@/modules/wallets/application/sync-pending-withdrawals";
+import {
+  claimNextTask,
+  failExhaustedTaskLeases,
+} from "@/modules/tasks/application/task-claims";
 import { reconcileCircleTransactions } from
   "@/modules/wallets/application/reconcile-circle-transactions";
-
+import { syncPendingWithdrawals } from
+  "@/modules/wallets/application/sync-pending-withdrawals";
 import { executeTask } from "./task-executor";
 
 const POLL_INTERVAL = 1000;
+const MAX_CONCURRENT_TASKS = 4;
 
 let started = false;
 
-// Prevent scheduling the same task twice
-const activeTasks = new Set<string>();
-
-export async function startWorker(
-  signal?: AbortSignal
-) {
-  if (started) {
-    return;
-  }
+export async function startWorker(signal?: AbortSignal) {
+  if (started) return;
 
   started = true;
+  const workerId = `worker-${randomUUID()}`;
+  const activeTasks = new Set<Promise<void>>();
 
-  console.log("🚀 Kaska worker started");
+  console.log(`Kaska worker started (${workerId})`);
 
-  while (!signal?.aborted) {
-    try {
-      await processWalletProvisioningQueue();
-      await syncPendingWithdrawals();
-      await reconcileCircleTransactions();
-      await processQueue();
-    } catch (error) {
-      console.error("Worker error:", error);
+  try {
+    while (!signal?.aborted) {
+      try {
+        await processWalletProvisioningQueue();
+        await syncPendingWithdrawals();
+        await reconcileCircleTransactions();
+        await failExhaustedTaskLeases();
+
+        while (activeTasks.size < MAX_CONCURRENT_TASKS) {
+          const task = await claimNextTask(workerId);
+          if (!task) break;
+
+          const execution = executeTask(task.id, workerId)
+            .catch((error) => console.error(`Task ${task.id} failed`, error))
+            .finally(() => activeTasks.delete(execution));
+
+          activeTasks.add(execution);
+        }
+      } catch (error) {
+        console.error("Worker error:", error);
+      }
+
+      await sleep(POLL_INTERVAL, signal);
     }
 
-    await sleep(POLL_INTERVAL, signal);
-  }
-
-  started = false;
-  console.log("Kaska worker stopped");
-}
-
-async function processQueue() {
-  const queuedTasks = await db
-    .select()
-    .from(tasks)
-    .where(eq(tasks.status, "queued"))
-    .orderBy(asc(tasks.createdAt));
-
-  if (queuedTasks.length === 0) {
-    return;
-  }
-
-  const grouped = new Map<string, typeof queuedTasks>();
-
-  for (const task of queuedTasks) {
-    if (!grouped.has(task.userAgentId)) {
-      grouped.set(task.userAgentId, []);
-    }
-
-    grouped.get(task.userAgentId)!.push(task);
-  }
-
-  for (const [userAgentId, queue] of grouped.entries()) {
-    const running = await db
-      .select()
-      .from(tasks)
-      .where(
-        and(
-          eq(tasks.userAgentId, userAgentId),
-          eq(tasks.status, "running")
-        )
-      );
-
-    if (running.length > 0) {
-      continue;
-    }
-
-    const nextTask = queue[0];
-
-    if (!nextTask) {
-      continue;
-    }
-
-    // Already being started
-    if (activeTasks.has(nextTask.id)) {
-      continue;
-    }
-
-    activeTasks.add(nextTask.id);
-
-    void executeTask(nextTask.id)
-      .catch((error) => {
-        console.error(error);
-      })
-      .finally(() => {
-        activeTasks.delete(nextTask.id);
-      });
+    await Promise.allSettled(activeTasks);
+  } finally {
+    started = false;
+    console.log("Kaska worker stopped");
   }
 }
 

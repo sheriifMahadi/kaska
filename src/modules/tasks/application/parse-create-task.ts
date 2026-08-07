@@ -13,6 +13,9 @@ export type CreateTaskInput = {
   priority: TaskPriority;
 };
 
+const UUID_PATTERN =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
 export function parseCreateTaskInput(
   body: unknown
 ): CreateTaskInput {
@@ -41,6 +44,10 @@ export function parseCreateTaskInput(
     );
   }
 
+  if (!UUID_PATTERN.test(userAgentId)) {
+    throw invalidInput("userAgentId must be a valid UUID");
+  }
+
   if (!isTaskPriority(priority)) {
     throw invalidInput(
       "priority must be low, normal, or high"
@@ -53,10 +60,18 @@ export function parseCreateTaskInput(
     );
   }
 
+  if (title.length < 3) {
+    throw invalidInput("title must be at least 3 characters");
+  }
+
   if (prompt.length > 50_000) {
     throw invalidInput(
       "prompt must be 50,000 characters or fewer"
     );
+  }
+
+  if (prompt.length < 10) {
+    throw invalidInput("prompt must be at least 10 characters");
   }
 
   return {
@@ -66,4 +81,3 @@ export function parseCreateTaskInput(
     priority,
   };
 }
-

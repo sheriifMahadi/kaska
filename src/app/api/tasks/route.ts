@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import { requireCurrentUser } from
   "@/modules/identity/application/current-user";
-import { createPaidTask } from
-  "@/modules/tasks/application/create-paid-task";
+import { createTask } from
+  "@/modules/tasks/application/create-task";
 import { listUserTasks } from
   "@/modules/tasks/application/list-user-tasks";
 import { parseCreateTaskInput } from
@@ -31,7 +31,7 @@ export async function POST(req: Request) {
   try {
     const user = await requireCurrentUser();
     const input = parseCreateTaskInput(await req.json());
-    const result = await createPaidTask(user.id, input);
+    const result = await createTask(user.id, input);
 
     return NextResponse.json(result, { status: 201 });
   } catch (error) {

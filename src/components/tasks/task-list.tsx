@@ -11,6 +11,9 @@ type Task = {
 const colors: Record<string, string> = {
   queued: "bg-yellow-500",
   running: "bg-blue-500",
+  completed: "bg-green-500",
+  failed: "bg-red-500",
+  cancelled: "bg-zinc-500",
   execution_succeeded: "bg-green-500",
   charged: "bg-green-500",
   execution_failed: "bg-red-500",

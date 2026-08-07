@@ -37,7 +37,12 @@ export async function GET(
         createdAt: tasks.createdAt,
         startedAt: tasks.startedAt,
         completedAt: tasks.completedAt,
+        failedAt: tasks.failedAt,
+        cancelledAt: tasks.cancelledAt,
+        attemptCount: tasks.attemptCount,
+        maxAttempts: tasks.maxAttempts,
         error: tasks.error,
+        errorCode: tasks.errorCode,
 
         agentName: agents.name,
         agentType: agents.slug,

@@ -1,9 +1,14 @@
 export const taskStatuses = [
+  // Phase 4 execution lifecycle
+  "queued",
+  "running",
+  "completed",
+  "failed",
+  "cancelled",
+  // Legacy/payment lifecycle values retained for existing records.
   "draft",
   "escrow_pending",
   "funds_locked",
-  "queued",
-  "running",
   "execution_succeeded",
   "charge_pending",
   "charged",
@@ -25,6 +30,14 @@ export const taskPriorities = [
 export type TaskPriority =
   (typeof taskPriorities)[number];
 
+export const executableTaskStatuses = [
+  "queued",
+  "running",
+  "completed",
+  "failed",
+  "cancelled",
+] as const;
+
 export function isTaskPriority(
   value: unknown
 ): value is TaskPriority {
@@ -33,4 +46,3 @@ export function isTaskPriority(
     taskPriorities.includes(value as TaskPriority)
   );
 }
-

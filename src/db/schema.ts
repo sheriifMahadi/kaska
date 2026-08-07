@@ -408,13 +408,32 @@ export const tasks = pgTable(
       .$type<TaskStatus>()
       .notNull()
       .default("queued"),
-    // queued | running | completed | failed
+
+    attemptCount: integer("attempt_count").notNull().default(0),
+
+    maxAttempts: integer("max_attempts").notNull().default(3),
+
+    queuedAt: timestamp("queued_at").defaultNow().notNull(),
 
     startedAt: timestamp("started_at"),
 
     completedAt: timestamp("completed_at"),
 
+    failedAt: timestamp("failed_at"),
+
+    cancelledAt: timestamp("cancelled_at"),
+
     error: text("error"),
+
+    errorCode: text("error_code"),
+
+    leaseOwner: text("lease_owner"),
+
+    leaseExpiresAt: timestamp("lease_expires_at"),
+
+    lastHeartbeatAt: timestamp("last_heartbeat_at"),
+
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
 
     createdAt: timestamp("created_at")
       .defaultNow()
@@ -423,6 +442,26 @@ export const tasks = pgTable(
   (table) => ({
     userIdx: index("task_user_idx").on(table.userId),
     workerIdx: index("task_worker_idx").on(table.userAgentId),
+
+    statusCreatedIdx: index("task_status_created_idx").on(
+      table.status,
+      table.createdAt
+    ),
+
+    leaseIdx: index("task_lease_idx").on(
+      table.status,
+      table.leaseExpiresAt
+    ),
+
+    statusCheck: check(
+      "task_status_check",
+      sql`${table.status} in ('queued', 'running', 'completed', 'failed', 'cancelled', 'draft', 'escrow_pending', 'funds_locked', 'execution_succeeded', 'charge_pending', 'charged', 'escrow_failed', 'execution_failed', 'refund_pending', 'refunded', 'manual_review')`
+    ),
+
+    attemptsCheck: check(
+      "task_attempts_check",
+      sql`${table.attemptCount} >= 0 and ${table.maxAttempts} > 0 and ${table.attemptCount} <= ${table.maxAttempts}`
+    ),
 
     escrowTaskIdx: index("task_escrow_task_idx").on(
       table.escrowTaskId
@@ -457,7 +496,7 @@ export const taskOutputs = pgTable(
       .notNull(),
   },
   (table) => ({
-    taskIdx: index("task_output_task_idx").on(table.taskId),
+    taskIdx: uniqueIndex("task_output_task_idx").on(table.taskId),
   })
 );
 
