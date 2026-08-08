@@ -17,11 +17,28 @@ type Attempt = {
   endedAt: string | null;
 };
 
+type PaymentAttempt = {
+  kind: "approval" | "escrow" | "charge" | "refund";
+  attemptNumber: number;
+  status: string;
+  provider: string;
+  circleTransactionId: string | null;
+  txHash: string | null;
+  blockNumber: number | null;
+  errorCode: string | null;
+  error: string | null;
+  preparedAt: string;
+  submittedAt: string | null;
+  confirmedAt: string | null;
+  failedAt: string | null;
+};
+
 type Task = {
   id: string;
   title: string;
   prompt: string;
   status: string;
+  workflowState: string;
   priority: string;
   createdAt: string;
   startedAt: string | null;
@@ -44,6 +61,7 @@ type Task = {
   latencyMs: number | null;
   finishReason: string | null;
   attempts: Attempt[];
+  paymentAttempts: PaymentAttempt[];
   paymentStatus: string | null;
   paymentAmount: string | null;
   paymentError: string | null;
@@ -54,6 +72,18 @@ type Task = {
   lockedAt: string | null;
   settledAt: string | null;
 };
+
+type TimelineEvent = {
+  key: string;
+  title: string;
+  description: string;
+  status: string;
+  timestamp: string;
+  txHash?: string | null;
+  error?: string | null;
+};
+
+const ARC_EXPLORER_URL = "https://testnet.arcscan.app";
 
 const activeStatuses = new Set(["queued", "running"]);
 const activePaymentStatuses = new Set([
@@ -71,6 +101,9 @@ const statusStyles: Record<string, string> = {
   failed: "bg-red-500/15 text-red-300",
   cancelled: "bg-zinc-700 text-zinc-300",
   draft: "bg-amber-500/15 text-amber-300",
+  MANUAL_REVIEW: "bg-red-500/15 text-red-300",
+  CHARGED: "bg-emerald-500/15 text-emerald-300",
+  REFUNDED: "bg-zinc-700 text-zinc-300",
 };
 
 export function TaskDetailsClient({ taskId }: { taskId: string }) {
@@ -120,7 +153,7 @@ export function TaskDetailsClient({ taskId }: { taskId: string }) {
   }, [loadTask, task]);
 
   async function performAction(action: "cancel" | "retry") {
-    if (action === "cancel" && !window.confirm("Cancel this queued task?")) return;
+    if (action === "cancel" && !window.confirm("Cancel this task?")) return;
     setActionPending(true);
     setPageError(null);
     try {
@@ -151,15 +184,15 @@ export function TaskDetailsClient({ taskId }: { taskId: string }) {
           <p className="mt-1 text-zinc-400">{task.agentName}</p>
         </div>
         <div className="flex items-center gap-3">
-          <span className={`rounded-full px-3 py-1 text-sm capitalize ${statusStyles[task.status] ?? "bg-zinc-800 text-zinc-300"}`}>
-            {task.status}
+          <span className={`rounded-full px-3 py-1 text-sm capitalize ${statusStyles[task.workflowState] ?? statusStyles[task.status] ?? "bg-zinc-800 text-zinc-300"}`}>
+            {task.workflowState.replaceAll("_", " ")}
           </span>
           {(task.status === "draft" || task.status === "queued") && (
             <button disabled={actionPending} onClick={() => performAction("cancel")} className="rounded-lg border border-red-900 px-4 py-2 text-sm text-red-300 disabled:opacity-50">
               {actionPending ? "Cancelling..." : "Cancel"}
             </button>
           )}
-          {task.status === "failed" && (
+          {task.status === "failed" && !task.paymentStatus && (
             <button disabled={actionPending} onClick={() => performAction("retry")} className="rounded-lg bg-violet-600 px-4 py-2 text-sm text-white disabled:opacity-50">
               {actionPending ? "Queueing..." : "Retry"}
             </button>
@@ -168,6 +201,25 @@ export function TaskDetailsClient({ taskId }: { taskId: string }) {
       </div>
 
       {pageError && <div className="rounded-xl border border-red-900 bg-red-950/50 p-4 text-red-300">{pageError}</div>}
+
+      {task.workflowState === "MANUAL_REVIEW" && (
+        <div className="rounded-xl border border-red-900 bg-red-950/40 p-4 text-sm text-red-200">
+          <p className="font-medium">This task needs manual review.</p>
+          <p className="mt-1">Automatic processing has stopped to prevent another charge or refund. Keep this task ID and the error code below when contacting the Kaska operator. Do not create a replacement task until the payment is checked.</p>
+        </div>
+      )}
+
+      {task.workflowState === "ESCROW_FAILED" && (
+        <div className="rounded-xl border border-red-900 bg-red-950/40 p-4 text-sm text-red-200">
+          Payment could not be locked, so the agent did not start. Any local reservation has been released. Review the payment error below before creating another task.
+        </div>
+      )}
+
+      {(task.workflowState === "EXECUTION_FAILED" || task.workflowState === "REFUND_PENDING") && (
+        <div className="rounded-xl border border-amber-900/60 bg-amber-950/20 p-4 text-sm text-amber-200">
+          The agent could not complete the task. Kaska will return the locked USDC automatically; keep the worker running until the refund is confirmed.
+        </div>
+      )}
 
       {task.status === "queued" && (
         <div className="rounded-xl border border-amber-900/60 bg-amber-950/20 p-4 text-sm text-amber-200">
@@ -191,8 +243,8 @@ export function TaskDetailsClient({ taskId }: { taskId: string }) {
           <dl className="grid gap-4 text-sm sm:grid-cols-2 lg:grid-cols-4">
             <Detail label="Status" value={task.paymentStatus.replaceAll("_", " ")} />
             <Detail label="Task price" value={`${task.paymentAmount ?? "—"} USDC`} />
-            <Detail label="Escrow transaction" value={shortHash(task.escrowTxHash)} />
-            <Detail label="Settlement transaction" value={shortHash(task.settlementTxHash)} />
+            <TransactionDetail label="Escrow transaction" hash={task.escrowTxHash} />
+            <TransactionDetail label="Settlement transaction" hash={task.settlementTxHash} />
           </dl>
         ) : (
           <p className="text-zinc-500">This legacy task has no payment record.</p>
@@ -204,6 +256,8 @@ export function TaskDetailsClient({ taskId }: { taskId: string }) {
           </p>
         )}
       </section>
+
+      <TaskTimeline task={task} />
 
       <section className="rounded-xl border border-zinc-800 bg-zinc-950 p-6">
         <h2 className="mb-4 font-semibold text-white">Prompt</h2>
@@ -245,33 +299,144 @@ export function TaskDetailsClient({ taskId }: { taskId: string }) {
         </dl>
       </section>
 
-      {task.attempts.length > 0 && (
-        <section className="rounded-xl border border-zinc-800 bg-zinc-950 p-6">
-          <h2 className="mb-4 font-semibold text-white">Attempt history</h2>
-          <div className="space-y-3">
-            {task.attempts.map((attempt) => (
-              <div key={attempt.attemptNumber} className="rounded-lg bg-zinc-900 p-4 text-sm">
-                <div className="flex justify-between gap-4">
-                  <span className="font-medium text-white">Attempt {attempt.attemptNumber}</span>
-                  <span className="capitalize text-zinc-400">{attempt.status}</span>
-                </div>
-                <p className="mt-1 text-zinc-500">
-                  {attempt.provider ?? "Provider not reached"}
-                  {attempt.latencyMs !== null ? ` · ${attempt.latencyMs} ms` : ""}
-                  {` · ${formatDate(attempt.startedAt)}`}
-                </p>
-                {attempt.errorMessage && <p className="mt-2 text-red-300">{attempt.errorMessage}</p>}
-              </div>
-            ))}
-          </div>
-        </section>
-      )}
     </div>
   );
 }
 
 function Detail({ label, value }: { label: string; value: string }) {
   return <div><dt className="text-zinc-500">{label}</dt><dd className="mt-1 break-words text-zinc-200">{value}</dd></div>;
+}
+
+function TransactionDetail({ label, hash }: { label: string; hash: string | null }) {
+  return (
+    <div>
+      <dt className="text-zinc-500">{label}</dt>
+      <dd className="mt-1">
+        {hash ? (
+          <a href={`${ARC_EXPLORER_URL}/tx/${hash}`} target="_blank" rel="noreferrer" className="font-mono text-violet-400 hover:text-violet-300 hover:underline">
+            {shortHash(hash)} ↗
+          </a>
+        ) : <span className="text-zinc-200">—</span>}
+      </dd>
+    </div>
+  );
+}
+
+function TaskTimeline({ task }: { task: Task }) {
+  const events = buildTimeline(task);
+  return (
+    <section className="rounded-xl border border-zinc-800 bg-zinc-950 p-6">
+      <h2 className="mb-5 font-semibold text-white">Task timeline</h2>
+      <div>
+        {events.map((event, index) => (
+          <div key={event.key} className="relative grid grid-cols-[20px_1fr] gap-3 pb-6 last:pb-0">
+            {index < events.length - 1 && <span className="absolute left-[5px] top-3 h-full w-px bg-zinc-800" />}
+            <span className={`relative mt-1 h-3 w-3 rounded-full ${timelineDot(event.status)}`} />
+            <div>
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <h3 className="text-sm font-medium text-white">{event.title}</h3>
+                <span className="text-xs capitalize text-zinc-500">{event.status.replaceAll("_", " ")}</span>
+              </div>
+              <p className="mt-1 text-sm text-zinc-400">{event.description}</p>
+              <p className="mt-1 text-xs text-zinc-600">{formatDate(event.timestamp)}</p>
+              {event.txHash && (
+                <a href={`${ARC_EXPLORER_URL}/tx/${event.txHash}`} target="_blank" rel="noreferrer" className="mt-2 inline-block font-mono text-xs text-violet-400 hover:underline">
+                  View {shortHash(event.txHash)} on Arcscan ↗
+                </a>
+              )}
+              {event.error && <p className="mt-2 text-sm text-red-300">{event.error}</p>}
+            </div>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function buildTimeline(task: Task): TimelineEvent[] {
+  const events: TimelineEvent[] = [{
+    key: "created",
+    title: "Task created",
+    description: task.paymentStatus
+      ? "The task price was reserved in your Kaska wallet."
+      : "The task was saved.",
+    status: "completed",
+    timestamp: task.createdAt,
+  }];
+
+  for (const attempt of task.paymentAttempts) {
+    events.push({
+      key: `payment-${attempt.kind}-${attempt.attemptNumber}`,
+      title: paymentTitle(attempt.kind),
+      description: paymentDescription(attempt.kind, attempt.status),
+      status: attempt.status,
+      timestamp: attempt.confirmedAt ?? attempt.failedAt ?? attempt.submittedAt ?? attempt.preparedAt,
+      txHash: attempt.txHash,
+      error: attempt.error
+        ? `${attempt.error}${attempt.errorCode ? ` (${attempt.errorCode})` : ""}`
+        : null,
+    });
+  }
+
+  for (const attempt of task.attempts) {
+    events.push({
+      key: `execution-${attempt.attemptNumber}`,
+      title: `Agent execution attempt ${attempt.attemptNumber}`,
+      description: executionDescription(attempt.status),
+      status: attempt.status,
+      timestamp: attempt.endedAt ?? attempt.startedAt,
+      error: attempt.errorMessage,
+    });
+  }
+
+  return events.sort(
+    (left, right) => new Date(left.timestamp).getTime() - new Date(right.timestamp).getTime()
+  );
+}
+
+function paymentTitle(kind: PaymentAttempt["kind"]) {
+  if (kind === "approval") return "USDC spending approval";
+  if (kind === "escrow") return "Task price locked";
+  if (kind === "charge") return "Task payment charged";
+  return "Task payment refunded";
+}
+
+function paymentDescription(kind: PaymentAttempt["kind"], status: string) {
+  if (status === "failed") {
+    return "This payment step failed. Automatic processing stopped before another transaction could be submitted.";
+  }
+  const finished = status === "confirmed" || status === "reconciled";
+  if (kind === "approval") {
+    return finished
+      ? "Your wallet allowed the Kaska escrow contract to lock this task’s exact price."
+      : "Kaska is asking your wallet to approve the escrow contract.";
+  }
+  if (kind === "escrow") {
+    return finished
+      ? "The task price is safely locked on Arc, so execution may begin."
+      : "Kaska is moving the exact task price into the Arc escrow contract.";
+  }
+  if (kind === "charge") {
+    return finished
+      ? "The task succeeded and the locked USDC was sent to the Kaska treasury."
+      : "The task succeeded and Kaska is settling the locked payment.";
+  }
+  return finished
+    ? "The task did not complete and the locked USDC was returned to your wallet."
+    : "Kaska is returning the locked task price to your wallet.";
+}
+
+function executionDescription(status: Attempt["status"]) {
+  if (status === "completed") return "The agent finished and saved its result.";
+  if (status === "failed") return "The agent failed; Kaska will retry or refund according to the task state.";
+  if (status === "abandoned") return "The worker stopped responding and this attempt was safely abandoned.";
+  return "A worker claimed the task and the agent is processing it.";
+}
+
+function timelineDot(status: string) {
+  if (status === "failed" || status === "abandoned") return "bg-red-500";
+  if (status === "confirmed" || status === "completed" || status === "reconciled") return "bg-emerald-500";
+  return "bg-amber-500";
 }
 
 function formatDate(value: string) {

@@ -9,12 +9,12 @@ import {
 } from "@/platform/blockchain/arc";
 import { serverConfig } from "@/platform/config/server";
 
-type SettleEscrowInput = {
+type EscrowSettlementInput = {
   escrowId: `0x${string}`;
   kind: "charge" | "refund";
 };
 
-export async function settleEscrow({ escrowId, kind }: SettleEscrowInput) {
+export async function inspectEscrowSettlement(escrowId: `0x${string}`) {
   const escrow = await publicClient.readContract({
     address: ESCROW_ADDRESS,
     abi: escrowAbi,
@@ -22,13 +22,24 @@ export async function settleEscrow({ escrowId, kind }: SettleEscrowInput) {
     args: [escrowId],
   });
   const status = Number(escrow[4]);
-  const expected = kind === "charge" ? 3 : 2;
+  return {
+    status,
+    expiresAt: escrow[3],
+    outcome:
+      status === 2
+        ? "refund" as const
+        : status === 3
+          ? "charge" as const
+          : null,
+  };
+}
 
-  // This makes a repeated worker attempt safe when the first transaction was
-  // mined but the process stopped before its hash was stored.
-  if (status === expected) return { hash: null, outcome: kind };
-  if (status === 2) return { hash: null, outcome: "refund" as const };
-  if (status === 3) return { hash: null, outcome: "charge" as const };
+export async function submitEscrowSettlement({
+  escrowId,
+  kind,
+}: EscrowSettlementInput) {
+  const escrow = await inspectEscrowSettlement(escrowId);
+  const status = escrow.status;
   if (status !== 1) {
     throw new Error(`Escrow has incompatible on-chain status ${status}`);
   }
@@ -54,7 +65,8 @@ export async function settleEscrow({ escrowId, kind }: SettleEscrowInput) {
     chain: arcTestnet,
     transport: http(serverConfig.arcRpcUrl),
   });
-  const expired = BigInt(Math.floor(Date.now() / 1_000)) >= escrow[3];
+  const expired =
+    BigInt(Math.floor(Date.now() / 1_000)) >= escrow.expiresAt;
   const functionName =
     kind === "charge" && expired
       ? "refundExpiredEscrow"
@@ -67,8 +79,6 @@ export async function settleEscrow({ escrowId, kind }: SettleEscrowInput) {
     functionName,
     args: [escrowId],
   });
-  const receipt = await publicClient.waitForTransactionReceipt({ hash });
-  if (receipt.status !== "success") throw new Error("Escrow settlement reverted");
   return {
     hash,
     outcome:

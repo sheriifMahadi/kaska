@@ -1,6 +1,6 @@
 import "server-only";
 
-import { and, eq, sql } from "drizzle-orm";
+import { and, eq, inArray, sql } from "drizzle-orm";
 
 import { walletLocks } from "@/db/schema";
 import { circle } from "@/lib/circle";
@@ -22,7 +22,7 @@ export async function getWalletBalance({
   walletId,
   circleWalletId,
 }: GetWalletBalanceInput) {
-  const [circleBalance, committedResult] =
+  const [circleBalance, committedResult, onChainCommittedResult] =
     await Promise.all([
       circle.getWalletTokenBalance({
         id: circleWalletId,
@@ -37,9 +37,18 @@ export async function getWalletBalance({
         .where(
           and(
             eq(walletLocks.walletId, walletId),
-            eq(walletLocks.status, "ACTIVE")
+            inArray(walletLocks.status, ["RESERVED", "ACTIVE"])
           )
         ),
+      db
+        .select({
+          amount: sql<string>`coalesce(sum(${walletLocks.amount}), 0)::text`,
+        })
+        .from(walletLocks)
+        .where(and(
+          eq(walletLocks.walletId, walletId),
+          eq(walletLocks.status, "ACTIVE")
+        )),
     ]);
 
   const usdcBalance = circleBalance.data?.tokenBalances?.find(
@@ -54,10 +63,13 @@ export async function getWalletBalance({
   const committedMicroUsdc = parseUsdc(
     committedResult[0]?.amount ?? "0"
   ).microUsdc;
+  const onChainCommittedMicroUsdc = parseUsdc(
+    onChainCommittedResult[0]?.amount ?? "0"
+  ).microUsdc;
 
   // The escrow contract has already moved committed USDC out of the
   // wallet. Add it back to describe all user funds controlled by Kaska.
-  const totalMicroUsdc = walletMicroUsdc + committedMicroUsdc;
+  const totalMicroUsdc = walletMicroUsdc + onChainCommittedMicroUsdc;
   const balance = calculateWalletBalance(
     totalMicroUsdc,
     committedMicroUsdc

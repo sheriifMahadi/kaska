@@ -2,7 +2,7 @@ import "server-only";
 
 import { and, count, eq, gte, sql } from "drizzle-orm";
 
-import { walletTransactions } from "@/db/schema";
+import { walletLocks, walletTransactions } from "@/db/schema";
 import { circle } from "@/lib/circle";
 import { db } from "@/lib/db";
 import {
@@ -10,6 +10,8 @@ import {
   parseUsdc,
 } from "@/modules/payments/domain/usdc";
 import type { WithdrawalRequest } from
+  "@/modules/wallets/domain/withdrawal";
+import { calculateWithdrawableMicroUsdc } from
   "@/modules/wallets/domain/withdrawal";
 import {
   conflict,
@@ -90,7 +92,7 @@ export async function createWithdrawal(
       );
     }
 
-    const [circleBalance, pendingResult] =
+    const [circleBalance, pendingResult, reservedResult] =
       await Promise.all([
         circle.getWalletTokenBalance({ id: context.circleWalletId }),
         tx
@@ -105,6 +107,15 @@ export async function createWithdrawal(
               eq(walletTransactions.status, "pending")
             )
           ),
+        tx
+          .select({
+            amount: sql<string>`coalesce(sum(${walletLocks.amount}), 0)::text`,
+          })
+          .from(walletLocks)
+          .where(and(
+            eq(walletLocks.walletId, context.walletId),
+            eq(walletLocks.status, "RESERVED")
+          )),
       ]);
 
     const usdc = circleBalance.data?.tokenBalances?.find(
@@ -123,10 +134,17 @@ export async function createWithdrawal(
     const pending = parseUsdc(
       pendingResult[0]?.amount ?? "0"
     ).microUsdc;
+    const reserved = parseUsdc(
+      reservedResult[0]?.amount ?? "0"
+    ).microUsdc;
 
     // Escrow funds have already left the wallet, so Circle's liquid balance
     // cannot include them. Pending withdrawals are reserved until synced.
-    const withdrawable = liquid > pending ? liquid - pending : 0n;
+    const withdrawable = calculateWithdrawableMicroUsdc(
+      liquid,
+      pending,
+      reserved
+    );
 
     if (request.microUsdc > withdrawable) {
       throw conflict("Withdrawal exceeds your available USDC balance");

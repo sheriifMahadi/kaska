@@ -1,10 +1,17 @@
 import "server-only";
 
 import { randomUUID } from "node:crypto";
-import { and, eq } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { keccak256, stringToHex } from "viem";
 
-import { agents, taskPayments, tasks, userAgents } from "@/db/schema";
+import {
+  agents,
+  taskPaymentAttempts,
+  taskPayments,
+  tasks,
+  userAgents,
+  walletLocks,
+} from "@/db/schema";
 import { db } from "@/lib/db";
 import { requireActiveUserWallet } from
   "@/modules/identity/application/current-wallet";
@@ -62,6 +69,10 @@ export async function createTask(
   const escrowId = keccak256(stringToHex(taskId));
 
   const task = await db.transaction(async (transaction) => {
+    // Serialize task reservations with withdrawals from this wallet.
+    await transaction.execute(
+      sql`select pg_advisory_xact_lock(hashtext(${wallet.id}))`
+    );
     const [created] = await transaction
       .insert(tasks)
       .values({
@@ -76,15 +87,43 @@ export async function createTask(
       })
       .returning();
 
-    await transaction.insert(taskPayments).values({
+    const approvalIdempotencyKey = randomUUID();
+    const escrowIdempotencyKey = randomUUID();
+    const settlementIdempotencyKey = randomUUID();
+    const [payment] = await transaction.insert(taskPayments).values({
       taskId,
       walletId: wallet.id,
       escrowId,
       amount: price.decimal,
       status: "approval_pending",
-      approvalIdempotencyKey: randomUUID(),
-      escrowIdempotencyKey: randomUUID(),
-      settlementIdempotencyKey: randomUUID(),
+      approvalIdempotencyKey,
+      escrowIdempotencyKey,
+      settlementIdempotencyKey,
+    }).returning({ id: taskPayments.id });
+
+    await transaction.insert(taskPaymentAttempts).values([
+      {
+        taskPaymentId: payment.id,
+        taskId,
+        kind: "approval",
+        idempotencyKey: approvalIdempotencyKey,
+        provider: "circle",
+      },
+      {
+        taskPaymentId: payment.id,
+        taskId,
+        kind: "escrow",
+        idempotencyKey: escrowIdempotencyKey,
+        provider: "circle",
+      },
+    ]);
+
+    await transaction.insert(walletLocks).values({
+      walletId: wallet.id,
+      taskId,
+      escrowTaskId: escrowId,
+      amount: price.decimal,
+      status: "RESERVED",
     });
 
     return created;

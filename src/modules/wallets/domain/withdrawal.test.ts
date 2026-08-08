@@ -1,7 +1,10 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { parseWithdrawalRequest } from "./withdrawal";
+import {
+  calculateWithdrawableMicroUsdc,
+  parseWithdrawalRequest,
+} from "./withdrawal";
 
 const requestId = "01936f2e-7f70-7b62-8f1a-7fab5fda7465";
 
@@ -42,5 +45,16 @@ test("rejects invalid withdrawal fields", () => {
       amount: "1",
       idempotencyKey: "not-a-uuid",
     })
+  );
+});
+
+test("pending withdrawals and task reservations are unavailable", () => {
+  assert.equal(
+    calculateWithdrawableMicroUsdc(10_000_000n, 1_000_000n, 3_000_000n),
+    6_000_000n
+  );
+  assert.equal(
+    calculateWithdrawableMicroUsdc(2_000_000n, 1_000_000n, 3_000_000n),
+    0n
   );
 });

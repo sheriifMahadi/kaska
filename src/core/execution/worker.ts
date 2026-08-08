@@ -12,6 +12,8 @@ import { syncPendingWithdrawals } from
   "@/modules/wallets/application/sync-pending-withdrawals";
 import { processTaskPayments } from
   "@/modules/payments/application/process-task-payments";
+import { reconcileTaskPayments } from
+  "@/modules/payments/application/reconcile-task-payments";
 import { executeTask } from "./task-executor";
 
 const POLL_INTERVAL = 1000;
@@ -25,6 +27,7 @@ export async function startWorker(signal?: AbortSignal) {
   started = true;
   const workerId = `worker-${randomUUID()}`;
   const activeTasks = new Set<Promise<void>>();
+  let lastPaymentReconciliationAt = 0;
 
   console.log(`Kaska worker started (${workerId})`);
 
@@ -34,7 +37,11 @@ export async function startWorker(signal?: AbortSignal) {
         await processWalletProvisioningQueue();
         await syncPendingWithdrawals();
         await reconcileCircleTransactions();
-        await processTaskPayments();
+        await processTaskPayments(10, workerId);
+        if (Date.now() - lastPaymentReconciliationAt >= 60_000) {
+          await reconcileTaskPayments(5, workerId);
+          lastPaymentReconciliationAt = Date.now();
+        }
         await failExhaustedTaskLeases();
 
         while (activeTasks.size < MAX_CONCURRENT_TASKS) {

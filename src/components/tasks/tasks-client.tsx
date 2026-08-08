@@ -29,6 +29,7 @@ type Task = {
   prompt: string;
   priority: string;
   status: string;
+  workflowState: string;
   createdAt: string;
   startedAt: string |null;
   completedAt: string |null;

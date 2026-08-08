@@ -38,6 +38,8 @@ import type {
 import type {
   TaskPaymentStatus,
   TaskSettlementKind,
+  TaskPaymentAttemptKind,
+  TaskPaymentAttemptStatus,
 } from "@/modules/payments/domain/task-payment";
 
 /* ---------------------------
@@ -473,7 +475,7 @@ export const tasks = pgTable(
 
     statusCheck: check(
       "task_status_check",
-      sql`${table.status} in ('queued', 'running', 'completed', 'failed', 'cancelled', 'draft', 'escrow_pending', 'funds_locked', 'execution_succeeded', 'charge_pending', 'charged', 'escrow_failed', 'execution_failed', 'refund_pending', 'refunded', 'manual_review')`
+      sql`${table.status} in ('draft', 'queued', 'running', 'completed', 'failed', 'cancelled', 'manual_review')`
     ),
 
     attemptsCheck: check(
@@ -606,6 +608,9 @@ export const taskPayments = pgTable(
       .notNull()
       .unique(),
     settlementTxHash: text("settlement_tx_hash"),
+    processingOwner: text("processing_owner"),
+    processingLeaseExpiresAt: timestamp("processing_lease_expires_at"),
+    chainReconciledAt: timestamp("chain_reconciled_at"),
     errorCode: text("error_code"),
     error: text("error"),
     lockedAt: timestamp("locked_at"),
@@ -619,6 +624,12 @@ export const taskPayments = pgTable(
       table.updatedAt
     ),
     walletIdx: index("task_payment_wallet_idx").on(table.walletId),
+    processingLeaseIdx: index("task_payment_processing_lease_idx").on(
+      table.processingLeaseExpiresAt
+    ),
+    chainReconciledIdx: index("task_payment_chain_reconciled_idx").on(
+      table.chainReconciledAt
+    ),
     statusCheck: check(
       "task_payment_status_check",
       sql`${table.status} in ('approval_pending', 'escrow_pending', 'locked', 'charge_pending', 'charged', 'refund_pending', 'refunded', 'failed', 'manual_review')`
@@ -630,6 +641,72 @@ export const taskPayments = pgTable(
     amountCheck: check(
       "task_payment_positive_amount_check",
       sql`${table.amount} > 0`
+    ),
+  })
+);
+
+export const taskPaymentAttempts = pgTable(
+  "task_payment_attempts",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    taskPaymentId: uuid("task_payment_id")
+      .notNull()
+      .references(() => taskPayments.id, { onDelete: "cascade" }),
+    taskId: uuid("task_id")
+      .notNull()
+      .references(() => tasks.id, { onDelete: "cascade" }),
+    kind: text("kind").$type<TaskPaymentAttemptKind>().notNull(),
+    attemptNumber: integer("attempt_number").notNull().default(1),
+    status: text("status")
+      .$type<TaskPaymentAttemptStatus>()
+      .notNull()
+      .default("prepared"),
+    idempotencyKey: uuid("idempotency_key").notNull().unique(),
+    provider: text("provider").$type<"circle" | "operator">().notNull(),
+    circleTransactionId: text("circle_transaction_id").unique(),
+    txHash: text("tx_hash"),
+    blockNumber: bigint("block_number", { mode: "number" }),
+    errorCode: text("error_code"),
+    error: text("error"),
+    preparedAt: timestamp("prepared_at").defaultNow().notNull(),
+    submittedAt: timestamp("submitted_at"),
+    confirmedAt: timestamp("confirmed_at"),
+    failedAt: timestamp("failed_at"),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (table) => ({
+    paymentIdx: index("task_payment_attempt_payment_idx").on(
+      table.taskPaymentId,
+      table.preparedAt
+    ),
+    taskIdx: index("task_payment_attempt_task_idx").on(
+      table.taskId,
+      table.preparedAt
+    ),
+    statusIdx: index("task_payment_attempt_status_idx").on(
+      table.status,
+      table.updatedAt
+    ),
+    kindAttemptIdx: uniqueIndex("task_payment_attempt_kind_number_idx").on(
+      table.taskPaymentId,
+      table.kind,
+      table.attemptNumber
+    ),
+    kindCheck: check(
+      "task_payment_attempt_kind_check",
+      sql`${table.kind} in ('approval', 'escrow', 'charge', 'refund')`
+    ),
+    statusCheck: check(
+      "task_payment_attempt_status_check",
+      sql`${table.status} in ('prepared', 'submitted', 'pending', 'confirmed', 'failed', 'reconciled')`
+    ),
+    providerCheck: check(
+      "task_payment_attempt_provider_check",
+      sql`${table.provider} in ('circle', 'operator')`
+    ),
+    attemptNumberCheck: check(
+      "task_payment_attempt_number_check",
+      sql`${table.attemptNumber} > 0`
     ),
   })
 );
@@ -662,7 +739,7 @@ export const walletLocks = pgTable("wallet_locks", {
   }).notNull(),
 
   status: text("status")
-    .$type<"ACTIVE" | "RELEASED" | "CHARGED" | "CANCELLED">()
+    .$type<"RESERVED" | "ACTIVE" | "RELEASED" | "CHARGED" | "CANCELLED">()
     .notNull()
     .default("ACTIVE"),
 

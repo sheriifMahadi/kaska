@@ -9,6 +9,7 @@ import {
   userAgents,
   agents,
   taskPayments,
+  taskPaymentAttempts,
 } from "@/db/schema";
 import { requireCurrentUser } from
   "@/modules/identity/application/current-user";
@@ -21,6 +22,8 @@ import { retryTask } from
   "@/modules/tasks/application/retry-task";
 import { parseTaskId } from
   "@/modules/tasks/domain/task-id";
+import { deriveTaskWorkflowState } from
+  "@/modules/tasks/domain/task-workflow";
 
 type Props = {
   params: Promise<{
@@ -128,7 +131,37 @@ export async function GET(
       .where(eq(taskAttempts.taskId, id))
       .orderBy(taskAttempts.attemptNumber);
 
-    return NextResponse.json({ ...rows[0], attempts });
+    const paymentAttempts = await db
+      .select({
+        kind: taskPaymentAttempts.kind,
+        attemptNumber: taskPaymentAttempts.attemptNumber,
+        status: taskPaymentAttempts.status,
+        provider: taskPaymentAttempts.provider,
+        circleTransactionId: taskPaymentAttempts.circleTransactionId,
+        txHash: taskPaymentAttempts.txHash,
+        blockNumber: taskPaymentAttempts.blockNumber,
+        errorCode: taskPaymentAttempts.errorCode,
+        error: taskPaymentAttempts.error,
+        preparedAt: taskPaymentAttempts.preparedAt,
+        submittedAt: taskPaymentAttempts.submittedAt,
+        confirmedAt: taskPaymentAttempts.confirmedAt,
+        failedAt: taskPaymentAttempts.failedAt,
+      })
+      .from(taskPaymentAttempts)
+      .where(eq(taskPaymentAttempts.taskId, id))
+      .orderBy(taskPaymentAttempts.preparedAt);
+
+    const task = rows[0];
+    return NextResponse.json({
+      ...task,
+      workflowState: deriveTaskWorkflowState({
+        executionStatus: task.status,
+        paymentStatus: task.paymentStatus,
+        attemptCount: task.attemptCount,
+      }),
+      attempts,
+      paymentAttempts,
+    });
   } catch (error) {
     return errorResponse(error, "GET /api/tasks/[id]");
   }

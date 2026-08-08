@@ -4,6 +4,7 @@ type Task = {
   id: string;
   title: string;
   status: string;
+  workflowState?: string;
   agentName: string;
   createdAt: string;
 };
@@ -14,15 +15,20 @@ const colors: Record<string, string> = {
   completed: "bg-green-500",
   failed: "bg-red-500",
   cancelled: "bg-zinc-500",
-  execution_succeeded: "bg-green-500",
-  charged: "bg-green-500",
-  execution_failed: "bg-red-500",
-  refunded: "bg-zinc-500",
-  escrow_pending: "bg-amber-500",
-  funds_locked: "bg-violet-500",
-  charge_pending: "bg-amber-500",
-  refund_pending: "bg-amber-500",
-  manual_review: "bg-red-700",
+  DRAFT: "bg-zinc-600",
+  ESCROW_PENDING: "bg-amber-500",
+  ESCROW_FAILED: "bg-red-500",
+  FUNDS_LOCKED: "bg-violet-500",
+  QUEUED: "bg-yellow-500",
+  RUNNING: "bg-blue-500",
+  EXECUTION_SUCCEEDED: "bg-green-500",
+  EXECUTION_FAILED: "bg-red-500",
+  CANCELLED: "bg-zinc-500",
+  CHARGE_PENDING: "bg-amber-500",
+  CHARGED: "bg-green-500",
+  REFUND_PENDING: "bg-amber-500",
+  REFUNDED: "bg-zinc-500",
+  MANUAL_REVIEW: "bg-red-700",
 };
 
 export function TaskList({
@@ -40,7 +46,9 @@ export function TaskList({
 
   return (
     <div className="space-y-4">
-      {tasks.map((task) => (
+      {tasks.map((task) => {
+        const displayStatus = task.workflowState ?? task.status;
+        return (
         <Link
           key={task.id}
           href={`/tasks/${task.id}`}
@@ -64,15 +72,16 @@ export function TaskList({
 
               <span
                 className={`rounded-full px-3 py-1 text-xs text-white ${
-                  colors[task.status] ?? "bg-zinc-600"
+                  colors[displayStatus] ?? "bg-zinc-600"
                 }`}
               >
-                {task.status}
+                {displayStatus.replaceAll("_", " ")}
               </span>
             </div>
           </div>
         </Link>
-      ))}
+        );
+      })}
     </div>
   );
 }

@@ -1,21 +1,10 @@
 export const taskStatuses = [
-  // Phase 4 execution lifecycle
+  "draft",
   "queued",
   "running",
   "completed",
   "failed",
   "cancelled",
-  // Legacy/payment lifecycle values retained for existing records.
-  "draft",
-  "escrow_pending",
-  "funds_locked",
-  "execution_succeeded",
-  "charge_pending",
-  "charged",
-  "escrow_failed",
-  "execution_failed",
-  "refund_pending",
-  "refunded",
   "manual_review",
 ] as const;
 
@@ -37,6 +26,23 @@ export const executableTaskStatuses = [
   "failed",
   "cancelled",
 ] as const;
+
+const taskTransitions: Record<TaskStatus, readonly TaskStatus[]> = {
+  draft: ["queued", "cancelled", "failed", "manual_review"],
+  queued: ["running", "cancelled", "failed", "manual_review"],
+  running: ["queued", "completed", "failed", "manual_review"],
+  completed: ["manual_review"],
+  failed: ["queued", "manual_review"],
+  cancelled: ["manual_review"],
+  manual_review: [],
+};
+
+export function canTransitionTask(
+  from: TaskStatus,
+  to: TaskStatus
+) {
+  return taskTransitions[from].includes(to);
+}
 
 export function isTaskPriority(
   value: unknown

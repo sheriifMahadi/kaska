@@ -3,13 +3,15 @@ import "server-only";
 import { desc, eq } from "drizzle-orm";
 import {
   agents,
+  taskPayments,
   tasks,
   userAgents,
 } from "@/db/schema";
 import { db } from "@/lib/db";
+import { deriveTaskWorkflowState } from "../domain/task-workflow";
 
-export function listUserTasks(userId: string) {
-  return db
+export async function listUserTasks(userId: string) {
+  const rows = await db
     .select({
       id: tasks.id,
       escrowTaskId: tasks.escrowTaskId,
@@ -17,6 +19,7 @@ export function listUserTasks(userId: string) {
       prompt: tasks.prompt,
       priority: tasks.priority,
       status: tasks.status,
+      paymentStatus: taskPayments.status,
       createdAt: tasks.createdAt,
       startedAt: tasks.startedAt,
       completedAt: tasks.completedAt,
@@ -41,6 +44,19 @@ export function listUserTasks(userId: string) {
       agents,
       eq(userAgents.agentId, agents.id)
     )
+    .leftJoin(
+      taskPayments,
+      eq(taskPayments.taskId, tasks.id)
+    )
     .where(eq(tasks.userId, userId))
     .orderBy(desc(tasks.createdAt));
+
+  return rows.map((task) => ({
+    ...task,
+    workflowState: deriveTaskWorkflowState({
+      executionStatus: task.status,
+      paymentStatus: task.paymentStatus,
+      attemptCount: task.attemptCount,
+    }),
+  }));
 }

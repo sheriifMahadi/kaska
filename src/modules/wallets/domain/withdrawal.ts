@@ -13,6 +13,17 @@ export type WithdrawalRequest = {
   idempotencyKey: string;
 };
 
+export function calculateWithdrawableMicroUsdc(
+  liquidMicroUsdc: bigint,
+  pendingWithdrawalMicroUsdc: bigint,
+  reservedTaskMicroUsdc: bigint
+) {
+  const unavailable = pendingWithdrawalMicroUsdc + reservedTaskMicroUsdc;
+  return liquidMicroUsdc > unavailable
+    ? liquidMicroUsdc - unavailable
+    : 0n;
+}
+
 export function parseWithdrawalRequest(
   input: unknown
 ): WithdrawalRequest {
