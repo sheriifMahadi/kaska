@@ -35,6 +35,10 @@ import type {
   AgentPricingType,
   EmploymentStatus,
 } from "@/modules/agents/domain/agent";
+import type {
+  TaskPaymentStatus,
+  TaskSettlementKind,
+} from "@/modules/payments/domain/task-payment";
 
 /* ---------------------------
    USERS
@@ -393,7 +397,7 @@ export const tasks = pgTable(
       }),
 
     // On-chain task ID used by the escrow contract
-    escrowTaskId: integer("escrow_task_id").unique(),
+    escrowTaskId: text("escrow_task_id").unique(),
 
     title: text("title").notNull(),
 
@@ -565,6 +569,71 @@ export const taskOutputs = pgTable(
   })
 );
 
+export const taskPayments = pgTable(
+  "task_payments",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    taskId: uuid("task_id")
+      .notNull()
+      .unique()
+      .references(() => tasks.id, { onDelete: "cascade" }),
+    walletId: uuid("wallet_id")
+      .notNull()
+      .references(() => wallets.id, { onDelete: "cascade" }),
+    escrowId: text("escrow_id").notNull().unique(),
+    amount: decimal("amount", { precision: 18, scale: 6 }).notNull(),
+    status: text("status")
+      .$type<TaskPaymentStatus>()
+      .notNull()
+      .default("approval_pending"),
+    approvalIdempotencyKey: uuid("approval_idempotency_key")
+      .notNull()
+      .unique(),
+    approvalCircleTransactionId: text(
+      "approval_circle_transaction_id"
+    ).unique(),
+    approvalTxHash: text("approval_tx_hash"),
+    escrowIdempotencyKey: uuid("escrow_idempotency_key")
+      .notNull()
+      .unique(),
+    escrowCircleTransactionId: text(
+      "escrow_circle_transaction_id"
+    ).unique(),
+    escrowTxHash: text("escrow_tx_hash"),
+    settlementKind: text("settlement_kind")
+      .$type<TaskSettlementKind>(),
+    settlementIdempotencyKey: uuid("settlement_idempotency_key")
+      .notNull()
+      .unique(),
+    settlementTxHash: text("settlement_tx_hash"),
+    errorCode: text("error_code"),
+    error: text("error"),
+    lockedAt: timestamp("locked_at"),
+    settledAt: timestamp("settled_at"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (table) => ({
+    statusIdx: index("task_payment_status_idx").on(
+      table.status,
+      table.updatedAt
+    ),
+    walletIdx: index("task_payment_wallet_idx").on(table.walletId),
+    statusCheck: check(
+      "task_payment_status_check",
+      sql`${table.status} in ('approval_pending', 'escrow_pending', 'locked', 'charge_pending', 'charged', 'refund_pending', 'refunded', 'failed', 'manual_review')`
+    ),
+    settlementKindCheck: check(
+      "task_payment_settlement_kind_check",
+      sql`${table.settlementKind} is null or ${table.settlementKind} in ('charge', 'refund')`
+    ),
+    amountCheck: check(
+      "task_payment_positive_amount_check",
+      sql`${table.amount} > 0`
+    ),
+  })
+);
+
 export const walletLocks = pgTable("wallet_locks", {
   id: uuid("id").defaultRandom().primaryKey(),
 
@@ -575,12 +644,14 @@ export const walletLocks = pgTable("wallet_locks", {
     }),
 
   taskId: uuid("task_id")
+    .notNull()
+    .unique()
     .references(() => tasks.id, {
       onDelete: "cascade",
     }),
 
   // On-chain escrow ID
-  escrowTaskId: integer("escrow_task_id").notNull(),
+  escrowTaskId: text("escrow_task_id").notNull(),
 
   // Transaction that created the lock
   txHash: text("tx_hash"),

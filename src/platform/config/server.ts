@@ -15,12 +15,6 @@ export const serverConfig = {
   get arcRpcUrl() {
     return required("NEXT_PUBLIC_ARC_RPC_URL");
   },
-  get usdcContractAddress() {
-    return required("USDC_CONTRACT");
-  },
-  get escrowContractAddress() {
-    return required("ESCROW_ADDRESS");
-  },
   get circleApiKey() {
     return required("CIRCLE_API_KEY");
   },
@@ -29,6 +23,13 @@ export const serverConfig = {
   },
   get clerkWebhookSecret() {
     return required("CLERK_WEBHOOK_SECRET");
+  },
+  get settlementPrivateKey(): `0x${string}` {
+    const value = required("SETTLEMENT_PRIVATE_KEY");
+    if (!/^0x[0-9a-fA-F]{64}$/.test(value)) {
+      throw new Error("SETTLEMENT_PRIVATE_KEY must be a 32-byte hex private key");
+    }
+    return value as `0x${string}`;
   },
   get openAiApiKey() {
     return required("OPENAI_API_KEY");

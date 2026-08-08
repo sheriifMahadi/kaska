@@ -1,6 +1,6 @@
 import "server-only";
 
-import { and, eq } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 
 import { tasks } from "@/db/schema";
 import { db } from "@/lib/db";
@@ -22,7 +22,7 @@ export async function cancelTask(userId: string, taskId: string) {
       and(
         eq(tasks.id, taskId),
         eq(tasks.userId, userId),
-        eq(tasks.status, "queued")
+        inArray(tasks.status, ["draft", "queued"])
       )
     )
     .returning();

@@ -48,5 +48,5 @@ export function isTaskPriority(
 }
 
 export function canCancelTask(status: TaskStatus) {
-  return status === "queued";
+  return status === "draft" || status === "queued";
 }

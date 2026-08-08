@@ -2,11 +2,21 @@ import "server-only";
 
 import { and, eq, sql } from "drizzle-orm";
 
-import { tasks } from "@/db/schema";
+import { taskPayments, tasks } from "@/db/schema";
 import { db } from "@/lib/db";
 import { conflict, notFound } from "@/shared/errors/application-error";
 
 export async function retryTask(userId: string, taskId: string) {
+  const [payment] = await db
+    .select({ id: taskPayments.id })
+    .from(taskPayments)
+    .innerJoin(tasks, eq(tasks.id, taskPayments.taskId))
+    .where(and(eq(tasks.id, taskId), eq(tasks.userId, userId)))
+    .limit(1);
+  if (payment) {
+    throw conflict("Paid tasks cannot be retried after settlement; create a new task instead");
+  }
+
   const now = new Date();
   const [retried] = await db
     .update(tasks)

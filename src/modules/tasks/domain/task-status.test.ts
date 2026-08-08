@@ -3,7 +3,8 @@ import test from "node:test";
 
 import { canCancelTask } from "./task-status";
 
-test("only queued tasks can be cancelled", () => {
+test("only pre-execution tasks can be cancelled", () => {
+  assert.equal(canCancelTask("draft"), true);
   assert.equal(canCancelTask("queued"), true);
   assert.equal(canCancelTask("running"), false);
   assert.equal(canCancelTask("completed"), false);

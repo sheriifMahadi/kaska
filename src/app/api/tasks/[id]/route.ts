@@ -8,6 +8,7 @@ import {
   taskOutputs,
   userAgents,
   agents,
+  taskPayments,
 } from "@/db/schema";
 import { requireCurrentUser } from
   "@/modules/identity/application/current-user";
@@ -68,11 +69,25 @@ export async function GET(
         finishReason: taskOutputs.finishReason,
         outputFormat: taskOutputs.format,
         cost: taskOutputs.cost,
+
+        paymentStatus: taskPayments.status,
+        paymentAmount: taskPayments.amount,
+        paymentError: taskPayments.error,
+        paymentErrorCode: taskPayments.errorCode,
+        approvalTxHash: taskPayments.approvalTxHash,
+        escrowTxHash: taskPayments.escrowTxHash,
+        settlementTxHash: taskPayments.settlementTxHash,
+        lockedAt: taskPayments.lockedAt,
+        settledAt: taskPayments.settledAt,
       })
       .from(tasks)
       .leftJoin(
         taskOutputs,
         eq(taskOutputs.taskId, tasks.id)
+      )
+      .leftJoin(
+        taskPayments,
+        eq(taskPayments.taskId, tasks.id)
       )
       .innerJoin(
         userAgents,

@@ -1,18 +1,15 @@
-import "server-only";
-
 import {
   createPublicClient,
   defineChain,
   http,
 } from "viem";
 import { serverConfig } from "@/platform/config/server";
+import { arcTestnetDeployment } from "./deployments";
 
 export const ARC_TESTNET = "ARC-TESTNET";
-export const ARC_TESTNET_CHAIN_ID = 5_042_002;
-export const ARC_TESTNET_USDC =
-  serverConfig.usdcContractAddress;
-export const ESCROW_ADDRESS =
-  serverConfig.escrowContractAddress;
+export const ARC_TESTNET_CHAIN_ID = arcTestnetDeployment.chainId;
+export const ARC_TESTNET_USDC = arcTestnetDeployment.usdc;
+export const ESCROW_ADDRESS = arcTestnetDeployment.kaskaEscrow;
 
 export const arcTestnet = defineChain({
   id: ARC_TESTNET_CHAIN_ID,
@@ -34,4 +31,3 @@ export const publicClient = createPublicClient({
   chain: arcTestnet,
   transport: http(serverConfig.arcRpcUrl),
 });
-

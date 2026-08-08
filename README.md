@@ -13,12 +13,12 @@ The repository currently contains:
 - task persistence and a polling execution worker;
 - OpenRouter, OpenAI, and Heurist provider adapters;
 - Arc wallet balance and withdrawal integration;
-- an in-progress per-task escrow integration;
+- a durable per-task Arc USDC escrow and settlement lifecycle;
 - the selected dashboard, workforce, task, and wallet UI.
 
-The paid-task flow is not yet production-ready. In particular, the current
-contract authorization and settlement lifecycle will be completed in later
-phases. See [docs/architecture.md](docs/architecture.md).
+The current deployment is testnet-only. Its deployer key is also the initial
+settlement key; rotate the contract role to an isolated operator before
+production. See [docs/architecture.md](docs/architecture.md).
 
 ## Requirements
 
@@ -26,7 +26,7 @@ phases. See [docs/architecture.md](docs/architecture.md).
 - PostgreSQL
 - Clerk application and webhook
 - Circle developer-controlled-wallet credentials
-- Arc testnet RPC and USDC/escrow addresses
+- Arc testnet RPC and a worker-only settlement signer
 - At least one configured AI provider
 - Foundry for contract development
 
@@ -42,20 +42,22 @@ DATABASE_URL=
 CIRCLE_API_KEY=
 CIRCLE_ENTITY_SECRET=
 NEXT_PUBLIC_ARC_RPC_URL=
-USDC_CONTRACT=
-ESCROW_ADDRESS=
+SETTLEMENT_PRIVATE_KEY=
 OPENROUTER_API_KEY=
 OPENAI_API_KEY=
 HEURIST_API_KEY=
 ```
 
-Never commit environment files, Circle recovery material, or private keys.
+`SETTLEMENT_PRIVATE_KEY` must control an address with the deployed contract's
+`SETTLEMENT_ROLE`; it is read only by the worker settlement path. Never expose
+it through a `NEXT_PUBLIC_` variable. Never commit environment files, Circle
+recovery material, or private keys.
 
 ## Commands
 
 ```bash
 npm run dev        # Next.js development server
-npm run worker     # standalone task worker
+npm run worker     # wallet provisioning and task execution worker
 npm run typecheck
 npm run lint
 npm test

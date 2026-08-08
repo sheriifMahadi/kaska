@@ -44,9 +44,25 @@ type Task = {
   latencyMs: number | null;
   finishReason: string | null;
   attempts: Attempt[];
+  paymentStatus: string | null;
+  paymentAmount: string | null;
+  paymentError: string | null;
+  paymentErrorCode: string | null;
+  approvalTxHash: string | null;
+  escrowTxHash: string | null;
+  settlementTxHash: string | null;
+  lockedAt: string | null;
+  settledAt: string | null;
 };
 
 const activeStatuses = new Set(["queued", "running"]);
+const activePaymentStatuses = new Set([
+  "approval_pending",
+  "escrow_pending",
+  "locked",
+  "charge_pending",
+  "refund_pending",
+]);
 
 const statusStyles: Record<string, string> = {
   queued: "bg-amber-500/15 text-amber-300",
@@ -54,6 +70,7 @@ const statusStyles: Record<string, string> = {
   completed: "bg-emerald-500/15 text-emerald-300",
   failed: "bg-red-500/15 text-red-300",
   cancelled: "bg-zinc-700 text-zinc-300",
+  draft: "bg-amber-500/15 text-amber-300",
 };
 
 export function TaskDetailsClient({ taskId }: { taskId: string }) {
@@ -93,7 +110,11 @@ export function TaskDetailsClient({ taskId }: { taskId: string }) {
   }, [loadTask]);
 
   useEffect(() => {
-    if (!task || !activeStatuses.has(task.status)) return;
+    if (
+      !task ||
+      (!activeStatuses.has(task.status) &&
+        !activePaymentStatuses.has(task.paymentStatus ?? ""))
+    ) return;
     const timer = window.setInterval(() => void loadTask(), 2_000);
     return () => window.clearInterval(timer);
   }, [loadTask, task]);
@@ -133,7 +154,7 @@ export function TaskDetailsClient({ taskId }: { taskId: string }) {
           <span className={`rounded-full px-3 py-1 text-sm capitalize ${statusStyles[task.status] ?? "bg-zinc-800 text-zinc-300"}`}>
             {task.status}
           </span>
-          {task.status === "queued" && (
+          {(task.status === "draft" || task.status === "queued") && (
             <button disabled={actionPending} onClick={() => performAction("cancel")} className="rounded-lg border border-red-900 px-4 py-2 text-sm text-red-300 disabled:opacity-50">
               {actionPending ? "Cancelling..." : "Cancel"}
             </button>
@@ -155,9 +176,34 @@ export function TaskDetailsClient({ taskId }: { taskId: string }) {
             : "Waiting for a worker to claim this task."}
         </div>
       )}
+      {task.status === "draft" && (
+        <div className="rounded-xl border border-amber-900/60 bg-amber-950/20 p-4 text-sm text-amber-200">
+          Payment is being confirmed. The agent cannot start until the task price is locked on Arc.
+        </div>
+      )}
       {task.status === "running" && (
         <div className="rounded-xl border border-blue-900/60 bg-blue-950/20 p-4 text-sm text-blue-200">The agent is working. This page updates automatically.</div>
       )}
+
+      <section className="rounded-xl border border-zinc-800 bg-zinc-950 p-6">
+        <h2 className="mb-4 font-semibold text-white">Payment</h2>
+        {task.paymentStatus ? (
+          <dl className="grid gap-4 text-sm sm:grid-cols-2 lg:grid-cols-4">
+            <Detail label="Status" value={task.paymentStatus.replaceAll("_", " ")} />
+            <Detail label="Task price" value={`${task.paymentAmount ?? "—"} USDC`} />
+            <Detail label="Escrow transaction" value={shortHash(task.escrowTxHash)} />
+            <Detail label="Settlement transaction" value={shortHash(task.settlementTxHash)} />
+          </dl>
+        ) : (
+          <p className="text-zinc-500">This legacy task has no payment record.</p>
+        )}
+        {task.paymentError && (
+          <p className="mt-4 text-sm text-red-300">
+            {task.paymentError}
+            {task.paymentErrorCode ? ` (${task.paymentErrorCode})` : ""}
+          </p>
+        )}
+      </section>
 
       <section className="rounded-xl border border-zinc-800 bg-zinc-950 p-6">
         <h2 className="mb-4 font-semibold text-white">Prompt</h2>
@@ -230,6 +276,10 @@ function Detail({ label, value }: { label: string; value: string }) {
 
 function formatDate(value: string) {
   return new Date(value).toLocaleString();
+}
+
+function shortHash(value: string | null) {
+  return value ? `${value.slice(0, 10)}…${value.slice(-8)}` : "—";
 }
 
 function resultPlaceholder(status: string) {

@@ -1,9 +1,15 @@
 import "server-only";
 
+import { randomUUID } from "node:crypto";
 import { and, eq } from "drizzle-orm";
+import { keccak256, stringToHex } from "viem";
 
-import { agents, tasks, userAgents } from "@/db/schema";
+import { agents, taskPayments, tasks, userAgents } from "@/db/schema";
 import { db } from "@/lib/db";
+import { requireActiveUserWallet } from
+  "@/modules/identity/application/current-wallet";
+import { parsePositiveUsdc } from
+  "@/modules/payments/domain/usdc";
 import {
   invalidInput,
   notFound,
@@ -20,6 +26,7 @@ export async function createTask(
       status: userAgents.status,
       agentActive: agents.isActive,
       supportsOneTime: agents.supportsOneTime,
+      price: agents.price,
     })
     .from(userAgents)
     .innerJoin(agents, eq(agents.id, userAgents.agentId))
@@ -43,17 +50,45 @@ export async function createTask(
     throw invalidInput("This agent does not accept one-time tasks");
   }
 
-  const [task] = await db
-    .insert(tasks)
-    .values({
-      userId,
-      userAgentId: employment.id,
-      title: input.title,
-      prompt: input.prompt,
-      priority: input.priority,
-      status: "queued",
-    })
-    .returning();
+  let price;
+  try {
+    price = parsePositiveUsdc(employment.price);
+  } catch {
+    throw invalidInput("This agent has an invalid task price");
+  }
+
+  const wallet = await requireActiveUserWallet(userId);
+  const taskId = randomUUID();
+  const escrowId = keccak256(stringToHex(taskId));
+
+  const task = await db.transaction(async (transaction) => {
+    const [created] = await transaction
+      .insert(tasks)
+      .values({
+        id: taskId,
+        userId,
+        userAgentId: employment.id,
+        escrowTaskId: escrowId,
+        title: input.title,
+        prompt: input.prompt,
+        priority: input.priority,
+        status: "draft",
+      })
+      .returning();
+
+    await transaction.insert(taskPayments).values({
+      taskId,
+      walletId: wallet.id,
+      escrowId,
+      amount: price.decimal,
+      status: "approval_pending",
+      approvalIdempotencyKey: randomUUID(),
+      escrowIdempotencyKey: randomUUID(),
+      settlementIdempotencyKey: randomUUID(),
+    });
+
+    return created;
+  });
 
   return { task };
 }

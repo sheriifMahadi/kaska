@@ -10,6 +10,8 @@ import { reconcileCircleTransactions } from
   "@/modules/wallets/application/reconcile-circle-transactions";
 import { syncPendingWithdrawals } from
   "@/modules/wallets/application/sync-pending-withdrawals";
+import { processTaskPayments } from
+  "@/modules/payments/application/process-task-payments";
 import { executeTask } from "./task-executor";
 
 const POLL_INTERVAL = 1000;
@@ -32,6 +34,7 @@ export async function startWorker(signal?: AbortSignal) {
         await processWalletProvisioningQueue();
         await syncPendingWithdrawals();
         await reconcileCircleTransactions();
+        await processTaskPayments();
         await failExhaustedTaskLeases();
 
         while (activeTasks.size < MAX_CONCURRENT_TASKS) {
