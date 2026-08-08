@@ -4,11 +4,15 @@ import { and, desc, eq, sql } from "drizzle-orm";
 
 import {
   agents,
+  recurringJobOccurrences,
   recurringJobs,
+  taskAttempts,
   taskOutputs,
+  taskPaymentAttempts,
   taskPayments,
   tasks,
   userAgents,
+  walletTransactions,
 } from "@/db/schema";
 import { db } from "@/lib/db";
 
@@ -76,41 +80,90 @@ export async function getWorkforceActivity(userId: string) {
       .orderBy(agents.name),
     db.execute<{
       id: string;
-      kind: "task" | "schedule";
+      targetId: string;
+      kind: "task" | "payment" | "schedule" | "transaction";
       title: string;
-      agentName: string;
+      agentName: string | null;
+      eventType: string;
       status: string;
       occurredAt: Date;
     }>(sql`
       select * from (
-        select
-          ${tasks.id}::text as id,
-          'task'::text as kind,
-          ${tasks.title} as title,
-          ${agents.name} as "agentName",
-          ${tasks.status} as status,
-          coalesce(${tasks.completedAt}, ${tasks.failedAt}, ${tasks.startedAt}, ${tasks.updatedAt}) as "occurredAt"
-        from ${tasks}
-        inner join ${userAgents} on ${userAgents.id} = ${tasks.userAgentId}
-          and ${userAgents.userId} = ${userId}
+        select ${taskAttempts.id}::text as id, ${tasks.id}::text as "targetId", 'task'::text as kind,
+          ${tasks.title} as title, ${agents.name} as "agentName",
+          'task_started'::text as "eventType", 'running'::text as status,
+          ${taskAttempts.startedAt} as "occurredAt"
+        from ${taskAttempts}
+        inner join ${tasks} on ${tasks.id} = ${taskAttempts.taskId}
+        inner join ${userAgents} on ${userAgents.id} = ${tasks.userAgentId} and ${userAgents.userId} = ${userId}
         inner join ${agents} on ${agents.id} = ${userAgents.agentId}
         where ${tasks.userId} = ${userId}
 
         union all
 
-        select
-          ${recurringJobs.id}::text,
-          'schedule'::text,
-          ${recurringJobs.name},
-          ${agents.name},
-          ${recurringJobs.status},
-          ${recurringJobs.updatedAt}
+        select ${taskAttempts.id}::text, ${tasks.id}::text, 'task'::text, ${tasks.title},
+          ${agents.name}, 'task_finished'::text, ${taskAttempts.status},
+          ${taskAttempts.endedAt}
+        from ${taskAttempts}
+        inner join ${tasks} on ${tasks.id} = ${taskAttempts.taskId}
+        inner join ${userAgents} on ${userAgents.id} = ${tasks.userAgentId} and ${userAgents.userId} = ${userId}
+        inner join ${agents} on ${agents.id} = ${userAgents.agentId}
+        where ${tasks.userId} = ${userId} and ${taskAttempts.endedAt} is not null
+
+        union all
+
+        select ${taskPaymentAttempts.id}::text, ${tasks.id}::text, 'payment'::text,
+          ${tasks.title}, ${agents.name}, ${taskPaymentAttempts.kind},
+          ${taskPaymentAttempts.status},
+          coalesce(${taskPaymentAttempts.confirmedAt}, ${taskPaymentAttempts.failedAt}, ${taskPaymentAttempts.submittedAt}, ${taskPaymentAttempts.preparedAt})
+        from ${taskPaymentAttempts}
+        inner join ${tasks} on ${tasks.id} = ${taskPaymentAttempts.taskId}
+        inner join ${userAgents} on ${userAgents.id} = ${tasks.userAgentId} and ${userAgents.userId} = ${userId}
+        inner join ${agents} on ${agents.id} = ${userAgents.agentId}
+        where ${tasks.userId} = ${userId}
+
+        union all
+
+        select ${recurringJobs.id}::text, ${recurringJobs.id}::text, 'schedule'::text,
+          ${recurringJobs.name}, ${agents.name}, 'schedule_state'::text,
+          ${recurringJobs.status}, ${recurringJobs.updatedAt}
         from ${recurringJobs}
         inner join ${userAgents} on ${userAgents.id} = ${recurringJobs.userAgentId}
           and ${userAgents.userId} = ${userId}
         inner join ${agents} on ${agents.id} = ${userAgents.agentId}
         where ${recurringJobs.userId} = ${userId}
+
+        union all
+
+        select ${recurringJobOccurrences.id}::text, ${recurringJobs.id}::text, 'schedule'::text,
+          ${recurringJobs.name}, ${agents.name}, 'schedule_occurrence'::text,
+          ${recurringJobOccurrences.status}, ${recurringJobOccurrences.createdAt}
+        from ${recurringJobOccurrences}
+        inner join ${recurringJobs} on ${recurringJobs.id} = ${recurringJobOccurrences.recurringJobId}
+        inner join ${userAgents} on ${userAgents.id} = ${recurringJobs.userAgentId} and ${userAgents.userId} = ${userId}
+        inner join ${agents} on ${agents.id} = ${userAgents.agentId}
+        where ${recurringJobs.userId} = ${userId}
+
+        union all
+
+        select ${walletTransactions.id}::text, ${walletTransactions.id}::text, 'transaction'::text,
+          initcap(${walletTransactions.type}), null::text,
+          ${walletTransactions.type}, ${walletTransactions.status},
+          coalesce(${walletTransactions.confirmedAt}, ${walletTransactions.failedAt}, ${walletTransactions.createdAt})
+        from ${walletTransactions}
+        where ${walletTransactions.userId} = ${userId}
+
+        union all
+
+        select ${tasks.id}::text, ${tasks.id}::text, 'task'::text, ${tasks.title},
+          ${agents.name}, 'task_state'::text, ${tasks.status}, ${tasks.updatedAt}
+        from ${tasks}
+        inner join ${userAgents} on ${userAgents.id} = ${tasks.userAgentId} and ${userAgents.userId} = ${userId}
+        inner join ${agents} on ${agents.id} = ${userAgents.agentId}
+        where ${tasks.userId} = ${userId}
+          and ${tasks.status} in ('cancelled', 'manual_review')
       ) activity
+      where "occurredAt" is not null
       order by "occurredAt" desc
       limit 10
     `),

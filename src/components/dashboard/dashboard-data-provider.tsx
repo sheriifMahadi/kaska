@@ -24,7 +24,7 @@ export type DashboardData = {
     spending: Array<{ date: string; amount: string }>;
     agentSpending: Array<{ date: string; agentId: string; agentName: string; amount: string; taskCount: number }>;
     performance: Array<{ agentId: string; agentName: string; completed: number; failed: number; averageLatencyMs: number | null; averageCost: string; totalTokens: string }>;
-    events: Array<{ id: string; kind: "task" | "schedule"; title: string; status: string; agentName: string; occurredAt: string }>;
+    events: Array<{ id: string; targetId: string; kind: "task" | "payment" | "schedule" | "transaction"; title: string; status: string; agentName: string | null; eventType: string; occurredAt: string }>;
     completedTasks: Array<{ id: string; title: string; agentName: string; completedAt: string | null; amount: string | null }>;
   };
 };
