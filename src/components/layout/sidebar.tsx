@@ -8,9 +8,12 @@ import {
   Wallet,
   Users,
 } from "lucide-react";
+import { useDashboardData } from
+  "@/components/dashboard/dashboard-data-provider";
 
 export function Sidebar() {
   const pathname = usePathname();
+  const { data, loading } = useDashboardData();
 
   return (
     <aside className="flex h-screen w-64 flex-col border-r border-zinc-900 bg-black">
@@ -64,12 +67,16 @@ export function Sidebar() {
           <div className="mb-2 flex items-center gap-2">
             <Wallet size={18} className="text-violet-400" />
             <p className="text-sm text-zinc-400">
-              Treasury
+              Available
             </p>
           </div>
 
           <p className="text-2xl font-bold text-white">
-            486 USDC
+            {loading
+              ? "—"
+              : data?.sidebar.balanceStatus === "available"
+                ? `${data.sidebar.availableUsdc} USDC`
+                : "Unavailable"}
           </p>
         </div>
 
@@ -82,7 +89,7 @@ export function Sidebar() {
           </div>
 
           <p className="text-2xl font-bold text-white">
-            4
+            {loading ? "—" : data?.sidebar.activeAgents ?? 0}
           </p>
         </div>
       </div>

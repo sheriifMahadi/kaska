@@ -2,11 +2,19 @@ import "server-only";
 
 import { and, desc, eq, sql } from "drizzle-orm";
 
-import { agents, recurringJobs, taskPayments, tasks, userAgents } from "@/db/schema";
+import {
+  agents,
+  recurringJobs,
+  taskOutputs,
+  taskPayments,
+  tasks,
+  userAgents,
+} from "@/db/schema";
 import { db } from "@/lib/db";
 
 export async function getWorkforceActivity(userId: string) {
-  const [spending, events, completedTasks] = await Promise.all([
+  const [spending, agentSpending, performance, events, completedTasks] =
+    await Promise.all([
     db.execute<{ date: string; amount: string }>(sql`
       with days as (
         select generate_series(
@@ -27,6 +35,45 @@ export async function getWorkforceActivity(userId: string) {
       from days left join charged on charged.day = days.day
       order by days.day
     `),
+    db.select({
+      date: sql<string>`${taskPayments.settledAt}::date::text`,
+      agentId: agents.id,
+      agentName: agents.name,
+      amount: sql<string>`sum(${taskPayments.amount})::text`,
+      taskCount: sql<number>`count(*)::int`,
+    }).from(taskPayments)
+      .innerJoin(tasks, eq(tasks.id, taskPayments.taskId))
+      .innerJoin(userAgents, and(
+        eq(userAgents.id, tasks.userAgentId),
+        eq(userAgents.userId, userId)
+      ))
+      .innerJoin(agents, eq(agents.id, userAgents.agentId))
+      .where(and(
+        eq(tasks.userId, userId),
+        eq(taskPayments.status, "charged"),
+        sql`${taskPayments.settledAt} >= current_date - interval '29 days'`
+      ))
+      .groupBy(sql`${taskPayments.settledAt}::date`, agents.id, agents.name)
+      .orderBy(sql`${taskPayments.settledAt}::date`),
+    db.select({
+      agentId: agents.id,
+      agentName: agents.name,
+      completed: sql<number>`count(distinct ${tasks.id}) filter (where ${tasks.status} = 'completed')::int`,
+      failed: sql<number>`count(distinct ${tasks.id}) filter (where ${tasks.status} = 'failed')::int`,
+      averageLatencyMs: sql<number | null>`round(avg(${taskOutputs.latencyMs}))::int`,
+      averageCost: sql<string>`coalesce(avg(${taskPayments.amount}) filter (where ${taskPayments.status} = 'charged'), 0)::text`,
+      totalTokens: sql<string>`coalesce(sum(${taskOutputs.tokens}), 0)::text`,
+    }).from(userAgents)
+      .innerJoin(agents, eq(agents.id, userAgents.agentId))
+      .leftJoin(tasks, and(
+        eq(tasks.userAgentId, userAgents.id),
+        sql`${tasks.createdAt} >= current_date - interval '29 days'`
+      ))
+      .leftJoin(taskPayments, eq(taskPayments.taskId, tasks.id))
+      .leftJoin(taskOutputs, eq(taskOutputs.taskId, tasks.id))
+      .where(eq(userAgents.userId, userId))
+      .groupBy(agents.id, agents.name)
+      .orderBy(agents.name),
     db.execute<{
       id: string;
       kind: "task" | "schedule";
@@ -87,6 +134,8 @@ export async function getWorkforceActivity(userId: string) {
 
   return {
     spending: [...spending],
+    agentSpending,
+    performance,
     events: [...events],
     completedTasks,
   };

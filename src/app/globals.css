@@ -22,3 +22,12 @@
 .chart-bar {
   animation: chart-rise 500ms ease-out both;
 }
+
+@keyframes chart-grow {
+  from { transform: scaleX(0); opacity: 0; }
+  to { transform: scaleX(1); opacity: 1; }
+}
+
+.chart-bar-horizontal {
+  animation: chart-grow 500ms ease-out both;
+}
