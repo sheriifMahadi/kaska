@@ -9,9 +9,7 @@ import {
   Users,
 } from "lucide-react";
 
-export function Sidebar({ summary }: {
-  summary: { committedUsdc: string; activeAgents: number };
-}) {
+export function Sidebar() {
   const pathname = usePathname();
 
   return (
@@ -66,12 +64,12 @@ export function Sidebar({ summary }: {
           <div className="mb-2 flex items-center gap-2">
             <Wallet size={18} className="text-violet-400" />
             <p className="text-sm text-zinc-400">
-              Committed
+              Treasury
             </p>
           </div>
 
           <p className="text-2xl font-bold text-white">
-            {summary.committedUsdc} USDC
+            486 USDC
           </p>
         </div>
 
@@ -79,12 +77,12 @@ export function Sidebar({ summary }: {
           <div className="mb-2 flex items-center gap-2">
             <Users size={18} className="text-violet-400" />
             <p className="text-sm text-zinc-400">
-              Active Agents
+              Active Workers
             </p>
           </div>
 
           <p className="text-2xl font-bold text-white">
-            {summary.activeAgents}
+            4
           </p>
         </div>
       </div>

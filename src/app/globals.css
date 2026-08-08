@@ -13,3 +13,12 @@
   --warning: #f59e0b;
   --danger: #ef4444;
 }
+
+@keyframes chart-rise {
+  from { transform: scaleY(0); opacity: 0; }
+  to { transform: scaleY(1); opacity: 1; }
+}
+
+.chart-bar {
+  animation: chart-rise 500ms ease-out both;
+}
