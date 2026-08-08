@@ -17,6 +17,10 @@ import {
   paymentReconciliationAction,
 } from "@/modules/payments/domain/task-payment";
 import { parseUsdc } from "@/modules/payments/domain/usdc";
+import {
+  pauseRecurringJobForPaymentProblem,
+  recordRecurringSettlement,
+} from "@/modules/schedules/application/record-recurring-outcome";
 
 const RECONCILIATION_INTERVAL_MS = 5 * 60 * 1_000;
 
@@ -78,6 +82,7 @@ async function claimForReconciliation(workerId: string) {
   const [context] = await db.select({
     payment: taskPayments,
     executionStatus: tasks.status,
+    recurringJobId: tasks.recurringJobId,
     walletAddress: wallets.address,
   }).from(taskPayments)
     .innerJoin(tasks, eq(tasks.id, taskPayments.taskId))
@@ -202,6 +207,12 @@ async function repairSettlement(
       status: kind === "charge" ? "CHARGED" : "RELEASED",
       releasedAt: now,
     }).where(eq(walletLocks.taskId, context.payment.taskId));
+    await recordRecurringSettlement(transaction, {
+      recurringJobId: context.recurringJobId,
+      outcome: kind,
+      amount: context.payment.amount,
+      now,
+    });
   });
 }
 
@@ -227,6 +238,12 @@ async function manualReview(
       leaseExpiresAt: null,
       updatedAt: now,
     }).where(eq(tasks.id, context.payment.taskId));
+    await pauseRecurringJobForPaymentProblem(
+      transaction,
+      context.recurringJobId,
+      `Payment requires review: ${detail}`,
+      now
+    );
   });
 }
 

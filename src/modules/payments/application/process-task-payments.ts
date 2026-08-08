@@ -29,6 +29,10 @@ import {
   inspectEscrowSettlement,
   submitEscrowSettlement,
 } from "./settle-escrow";
+import {
+  pauseRecurringJobForPaymentProblem,
+  recordRecurringSettlement,
+} from "@/modules/schedules/application/record-recurring-outcome";
 
 const POLL_DELAY_MS = 5_000;
 const ACTIVE_PAYMENT_STATES = [
@@ -50,6 +54,7 @@ async function loadPayment(id: string) {
     .select({
       payment: taskPayments,
       taskStatus: tasks.status,
+      recurringJobId: tasks.recurringJobId,
       walletAddress: wallets.address,
       circleWalletId: wallets.circleWalletId,
     })
@@ -515,6 +520,12 @@ async function finishSettlement(context: Payment) {
       status: finalKind === "charge" ? "CHARGED" : "RELEASED",
       releasedAt: now,
     }).where(eq(walletLocks.taskId, context.payment.taskId));
+    await recordRecurringSettlement(transaction, {
+      recurringJobId: context.recurringJobId,
+      outcome: finalKind,
+      amount: context.payment.amount,
+      now,
+    });
   });
 }
 
@@ -603,6 +614,12 @@ async function failPayment(context: Payment, code: string, error: string) {
       eq(walletLocks.taskId, context.payment.taskId),
       eq(walletLocks.status, "RESERVED")
     ));
+    await pauseRecurringJobForPaymentProblem(
+      transaction,
+      context.recurringJobId,
+      "A run could not be funded. Check the wallet balance and try again.",
+      now
+    );
   });
 }
 
@@ -650,6 +667,12 @@ async function markManualReview(
       leaseExpiresAt: null,
       updatedAt: now,
     }).where(eq(tasks.id, context.payment.taskId));
+    await pauseRecurringJobForPaymentProblem(
+      transaction,
+      context.recurringJobId,
+      `Payment requires review: ${error}`,
+      now
+    );
   });
 }
 

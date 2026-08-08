@@ -5,6 +5,18 @@ import { closeDatabase, db } from "@/lib/db";
 
 const catalog = [
   {
+    name: "Web Monitoring Agent",
+    slug: "web-monitoring-agent",
+    description: "Searches the live web and reports changes with sources",
+    capabilities: ["web-search", "web-monitoring", "data-extraction"],
+    executionProvider: "openai" as const,
+    pricingType: "fixed_per_run" as const,
+    price: "0.25",
+    supportsOneTime: true,
+    supportsRecurring: true,
+    isActive: true,
+  },
+  {
     name: "Research Agent",
     slug: "research-agent",
     description: "Finds and summarizes information",

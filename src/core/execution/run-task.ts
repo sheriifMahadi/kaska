@@ -8,6 +8,7 @@ import {
 } from "./prompts/build-system-prompt";
 import { createAIProvider } from "./providers/provider-factory";
 import { normalizeProviderError } from "./providers/provider-error";
+import { canUseWebSearch } from "./providers/tool-policy";
 
 export async function runTask(taskId: string) {
   const [context] = await db
@@ -36,14 +37,22 @@ export async function runTask(taskId: string) {
   const startedAt = performance.now();
 
   try {
+    const allowWebSearch = canUseWebSearch(
+      context.executionProvider,
+      context.capabilities
+    );
     const result = await provider.execute({
       systemPrompt,
       userPrompt: `Task: ${context.title}\n\nInstructions:\n${context.prompt}`,
+      allowWebSearch,
     });
     const latencyMs = Math.round(performance.now() - startedAt);
 
     if (!result.output.trim()) {
       throw new Error("The AI provider returned an empty result");
+    }
+    if (allowWebSearch && !result.usedTools.includes("web_search")) {
+      throw new Error("The web monitoring agent did not perform its required web search");
     }
 
     await db.insert(taskOutputs).values({

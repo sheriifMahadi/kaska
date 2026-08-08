@@ -10,12 +10,15 @@
     "build": "next build",
     "start": "next start",
     "worker": "tsx worker/main.ts",
+    "scheduler": "tsx scheduler/main.ts",
     "seed:agents": "tsx src/db/seed/agents.ts",
     "audit:phase6": "tsx scripts/audit-phase6.ts",
+    "audit:phase7": "tsx scripts/audit-phase7.ts",
+    "test:phase7": "tsx --test src/core/execution/providers/tool-policy.test.ts src/modules/schedules/domain/recurring-job.test.ts",
     "typecheck": "next typegen && tsc --noEmit",
-    "test": "tsx --test src/core/execution/prompts/build-system-prompt.test.ts src/core/execution/providers/provider-error.test.ts src/modules/agents/domain/agent.test.ts src/modules/identity/application/provision-circle-wallet.test.ts src/modules/identity/domain/clerk-user-event.test.ts src/modules/identity/domain/ownership.test.ts src/modules/identity/domain/wallet-provisioning-policy.test.ts src/modules/payments/domain/task-payment.test.ts src/modules/payments/domain/usdc.test.ts src/modules/tasks/application/parse-create-task.test.ts src/modules/tasks/domain/task-id.test.ts src/modules/tasks/domain/task-lease.test.ts src/modules/tasks/domain/task-retry.test.ts src/modules/tasks/domain/task-status.test.ts src/modules/tasks/domain/task-workflow.test.ts src/modules/wallets/domain/wallet-balance.test.ts src/modules/wallets/domain/wallet-transaction.test.ts src/modules/wallets/domain/withdrawal.test.ts",
+    "test": "tsx --test src/core/execution/prompts/build-system-prompt.test.ts src/core/execution/providers/provider-error.test.ts src/modules/agents/domain/agent.test.ts src/modules/identity/application/provision-circle-wallet.test.ts src/modules/identity/domain/clerk-user-event.test.ts src/modules/identity/domain/ownership.test.ts src/modules/identity/domain/wallet-provisioning-policy.test.ts src/modules/payments/domain/task-payment.test.ts src/modules/payments/domain/usdc.test.ts src/modules/schedules/domain/recurring-job.test.ts src/modules/tasks/application/parse-create-task.test.ts src/modules/tasks/domain/task-id.test.ts src/modules/tasks/domain/task-lease.test.ts src/modules/tasks/domain/task-retry.test.ts src/modules/tasks/domain/task-status.test.ts src/modules/tasks/domain/task-workflow.test.ts src/modules/wallets/domain/wallet-balance.test.ts src/modules/wallets/domain/wallet-transaction.test.ts src/modules/wallets/domain/withdrawal.test.ts",
     "lint": "eslint",
-    "check": "npm run typecheck && npm run lint && npm test && npm run build"
+    "check": "npm run typecheck && npm run lint && npm test && npm run test:phase7 && npm run build"
   },
   "dependencies": {
     "@circle-fin/developer-controlled-wallets": "^10.6.0",

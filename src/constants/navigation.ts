@@ -4,6 +4,7 @@ import {
   ListTodo,
   Wallet,
   ReceiptText,
+  CalendarClock,
 } from "lucide-react";
 
 export const dashboardNav = [
@@ -21,6 +22,11 @@ export const dashboardNav = [
     title: "Tasks",
     href: "/tasks",
     icon: ListTodo,
+  },
+  {
+    title: "Schedules",
+    href: "/schedules",
+    icon: CalendarClock,
   },
   {
     title: "Wallet",

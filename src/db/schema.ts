@@ -12,6 +12,7 @@ import {
   jsonb,
   bigint,
   uniqueIndex,
+  foreignKey,
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 import type {
@@ -41,6 +42,8 @@ import type {
   TaskPaymentAttemptKind,
   TaskPaymentAttemptStatus,
 } from "@/modules/payments/domain/task-payment";
+import type { RecurringJobStatus } from
+  "@/modules/schedules/domain/recurring-job";
 
 /* ---------------------------
    USERS
@@ -371,6 +374,10 @@ export const userAgents = pgTable(
       table.userId,
       table.agentId
     ),
+    idUserIdx: uniqueIndex("user_agent_id_user_idx").on(
+      table.id,
+      table.userId
+    ),
     statusIdx: index("user_agent_status_idx").on(
       table.userId,
       table.status
@@ -378,6 +385,96 @@ export const userAgents = pgTable(
     statusCheck: check(
       "user_agent_status_check",
       sql`${table.status} in ('active', 'archived')`
+    ),
+  })
+);
+
+export const recurringJobs = pgTable(
+  "recurring_jobs",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    userAgentId: uuid("user_agent_id").notNull(),
+    name: text("name").notNull(),
+    instructions: text("instructions").notNull(),
+    status: text("status")
+      .$type<RecurringJobStatus>()
+      .notNull()
+      .default("active"),
+    intervalMinutes: integer("interval_minutes").notNull(),
+    pricePerRun: decimal("price_per_run", {
+      precision: 18,
+      scale: 6,
+    }).notNull(),
+    spendingLimit: decimal("spending_limit", {
+      precision: 18,
+      scale: 6,
+    }).notNull(),
+    spentAmount: decimal("spent_amount", {
+      precision: 18,
+      scale: 6,
+    }).notNull().default("0"),
+    runCount: integer("run_count").notNull().default(0),
+    consecutiveFailures: integer("consecutive_failures")
+      .notNull()
+      .default(0),
+    missedRunCount: integer("missed_run_count").notNull().default(0),
+    timezone: text("timezone").notNull(),
+    startsAt: timestamp("starts_at").defaultNow().notNull(),
+    endsAt: timestamp("ends_at"),
+    nextRunAt: timestamp("next_run_at"),
+    lastRunAt: timestamp("last_run_at"),
+    statusReason: text("status_reason"),
+    pausedAt: timestamp("paused_at"),
+    cancelledAt: timestamp("cancelled_at"),
+    completedAt: timestamp("completed_at"),
+    leaseOwner: text("lease_owner"),
+    leaseExpiresAt: timestamp("lease_expires_at"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (table) => ({
+    ownerIdx: index("recurring_job_owner_idx").on(
+      table.userId,
+      table.status
+    ),
+    dueIdx: index("recurring_job_due_idx").on(
+      table.status,
+      table.nextRunAt
+    ),
+    leaseIdx: index("recurring_job_lease_idx").on(
+      table.leaseExpiresAt
+    ),
+    employmentOwnerFk: foreignKey({
+      columns: [table.userAgentId, table.userId],
+      foreignColumns: [userAgents.id, userAgents.userId],
+      name: "recurring_job_employment_owner_fk",
+    }).onDelete("cascade"),
+    statusCheck: check(
+      "recurring_job_status_check",
+      sql`${table.status} in ('active', 'paused', 'auto_paused', 'completed', 'cancelled')`
+    ),
+    intervalCheck: check(
+      "recurring_job_interval_check",
+      sql`${table.intervalMinutes} between 1 and 43200`
+    ),
+    priceCheck: check(
+      "recurring_job_price_check",
+      sql`${table.pricePerRun} > 0`
+    ),
+    spendingCheck: check(
+      "recurring_job_spending_check",
+      sql`${table.spendingLimit} >= ${table.pricePerRun} and ${table.spentAmount} >= 0 and ${table.spentAmount} <= ${table.spendingLimit}`
+    ),
+    countersCheck: check(
+      "recurring_job_counters_check",
+      sql`${table.runCount} >= 0 and ${table.consecutiveFailures} >= 0 and ${table.missedRunCount} >= 0`
+    ),
+    dateRangeCheck: check(
+      "recurring_job_date_range_check",
+      sql`${table.endsAt} is null or ${table.endsAt} > ${table.startsAt}`
     ),
   })
 );
@@ -397,6 +494,11 @@ export const tasks = pgTable(
       .references(() => userAgents.id, {
         onDelete: "cascade",
       }),
+
+    recurringJobId: uuid("recurring_job_id")
+      .references(() => recurringJobs.id, { onDelete: "set null" }),
+
+    scheduledFor: timestamp("scheduled_for"),
 
     // On-chain task ID used by the escrow contract
     escrowTaskId: text("escrow_task_id").unique(),
@@ -485,6 +587,54 @@ export const tasks = pgTable(
 
     escrowTaskIdx: index("task_escrow_task_idx").on(
       table.escrowTaskId
+    ),
+    recurringJobIdx: index("task_recurring_job_idx").on(
+      table.recurringJobId,
+      table.createdAt
+    ),
+    recurringOccurrenceIdx: uniqueIndex(
+      "task_recurring_occurrence_idx"
+    ).on(table.recurringJobId, table.scheduledFor),
+    recurringFieldsCheck: check(
+      "task_recurring_fields_check",
+      sql`(${table.recurringJobId} is null and ${table.scheduledFor} is null) or (${table.recurringJobId} is not null and ${table.scheduledFor} is not null)`
+    ),
+  })
+);
+
+export const recurringJobOccurrences = pgTable(
+  "recurring_job_occurrences",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    recurringJobId: uuid("recurring_job_id")
+      .notNull()
+      .references(() => recurringJobs.id, { onDelete: "cascade" }),
+    scheduledFor: timestamp("scheduled_for").notNull(),
+    status: text("status")
+      .$type<"task_created" | "skipped_overlap" | "skipped_missed" | "skipped_limit">()
+      .notNull(),
+    taskId: uuid("task_id")
+      .unique()
+      .references(() => tasks.id, { onDelete: "cascade" }),
+    reason: text("reason"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => ({
+    occurrenceIdx: uniqueIndex("recurring_job_occurrence_idx").on(
+      table.recurringJobId,
+      table.scheduledFor
+    ),
+    jobTimeIdx: index("recurring_job_occurrence_time_idx").on(
+      table.recurringJobId,
+      table.scheduledFor
+    ),
+    statusCheck: check(
+      "recurring_job_occurrence_status_check",
+      sql`${table.status} in ('task_created', 'skipped_overlap', 'skipped_missed', 'skipped_limit')`
+    ),
+    taskCheck: check(
+      "recurring_job_occurrence_task_check",
+      sql`(${table.status} = 'task_created' and ${table.taskId} is not null) or (${table.status} in ('skipped_overlap', 'skipped_missed', 'skipped_limit') and ${table.taskId} is null)`
     ),
   })
 );

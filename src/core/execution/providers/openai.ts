@@ -12,7 +12,7 @@ export class OpenAIProvider implements AIProvider {
     request: ExecutionRequest
   ): Promise<ExecutionResult> {
     const response = await openai.responses.create({
-      model: "gpt-4.1-mini",
+      model: "gpt-5.4-mini",
       input: [
         {
           role: "system",
@@ -23,6 +23,10 @@ export class OpenAIProvider implements AIProvider {
           content: request.userPrompt,
         },
       ],
+      tools: request.allowWebSearch
+        ? [{ type: "web_search" }]
+        : undefined,
+      tool_choice: request.allowWebSearch ? "required" : undefined,
     });
 
     return {
@@ -35,6 +39,9 @@ export class OpenAIProvider implements AIProvider {
       totalTokens: response.usage?.total_tokens ?? 0,
       cost: null,
       finishReason: response.status ?? null,
+      usedTools: response.output
+        .filter((item) => item.type === "web_search_call")
+        .map(() => "web_search"),
     };
   }
 }

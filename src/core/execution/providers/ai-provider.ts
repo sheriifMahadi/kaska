@@ -4,6 +4,7 @@ import type { AgentExecutionProvider } from
 export type ExecutionRequest = {
   systemPrompt: string;
   userPrompt: string;
+  allowWebSearch: boolean;
 };
 
 export type ExecutionResult = {
@@ -14,6 +15,7 @@ export type ExecutionResult = {
   totalTokens: number;
   cost: string | null;
   finishReason: string | null;
+  usedTools: string[];
 };
 
 export interface AIProvider {

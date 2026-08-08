@@ -35,6 +35,7 @@ export class OpenRouterProvider implements AIProvider {
       totalTokens: response.usage?.total_tokens ?? 0,
       cost: null,
       finishReason: response.choices[0]?.finish_reason ?? null,
+      usedTools: [],
     };
   }
 }

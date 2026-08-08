@@ -1,0 +1,4 @@
+ALTER TABLE "recurring_job_occurrences" DROP CONSTRAINT "recurring_job_occurrence_status_check";--> statement-breakpoint
+ALTER TABLE "recurring_job_occurrences" DROP CONSTRAINT "recurring_job_occurrence_task_check";--> statement-breakpoint
+ALTER TABLE "recurring_job_occurrences" ADD CONSTRAINT "recurring_job_occurrence_status_check" CHECK ("recurring_job_occurrences"."status" in ('task_created', 'skipped_overlap', 'skipped_missed', 'skipped_limit'));--> statement-breakpoint
+ALTER TABLE "recurring_job_occurrences" ADD CONSTRAINT "recurring_job_occurrence_task_check" CHECK (("recurring_job_occurrences"."status" = 'task_created' and "recurring_job_occurrences"."task_id" is not null) or ("recurring_job_occurrences"."status" in ('skipped_overlap', 'skipped_missed', 'skipped_limit') and "recurring_job_occurrences"."task_id" is null));

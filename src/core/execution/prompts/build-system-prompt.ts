@@ -21,6 +21,7 @@ export function buildSystemPrompt(agent: Agent) {
     "- Do not invent facts, completed actions, links, citations, or sources.",
     "- Clearly distinguish verified facts from assumptions or limitations.",
     "- Never claim to have browsed, contacted someone, or changed an external system unless a provided tool actually did so.",
+    "- When web search is available, you must use it before answering and include the source links returned by the tool.",
     "",
     "Return Markdown using these headings:",
     "# Summary",
