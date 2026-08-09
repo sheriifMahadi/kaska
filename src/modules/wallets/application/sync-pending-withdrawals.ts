@@ -14,7 +14,10 @@ function errorMessage(error: unknown) {
     : "Circle transaction synchronization failed";
 }
 
-export async function syncPendingWithdrawals(limit = 10) {
+export async function syncPendingWithdrawals(
+  limit = 10,
+  userId?: string
+) {
   const eligibleBefore = new Date(Date.now() - SYNC_INTERVAL_MS);
   const pending = await db
     .select({
@@ -27,7 +30,8 @@ export async function syncPendingWithdrawals(limit = 10) {
         eq(walletTransactions.type, "withdrawal"),
         eq(walletTransactions.status, "pending"),
         isNotNull(walletTransactions.circleTransactionId),
-        lte(walletTransactions.updatedAt, eligibleBefore)
+        lte(walletTransactions.updatedAt, eligibleBefore),
+        userId ? eq(walletTransactions.userId, userId) : undefined
       )
     )
     .orderBy(asc(walletTransactions.updatedAt))

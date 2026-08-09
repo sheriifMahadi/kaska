@@ -1,4 +1,8 @@
+"use client";
+
 import Link from "next/link";
+import { useState } from "react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 
 type Task = {
   id: string;
@@ -34,10 +38,13 @@ const colors: Record<string, string> = {
 export function TaskList({
   tasks,
   returnToAgentId,
+  pageSize,
 }: {
   tasks: Task[];
   returnToAgentId?: string;
+  pageSize?: number;
 }) {
+  const [page, setPage] = useState(0);
   if (!tasks.length) {
     return (
       <div className="rounded-xl border border-zinc-800 p-8 text-center text-zinc-500">
@@ -46,9 +53,14 @@ export function TaskList({
     );
   }
 
+  const size = pageSize ?? tasks.length;
+  const pageCount = Math.max(1, Math.ceil(tasks.length / size));
+  const visibleTasks = tasks.slice(page * size, page * size + size);
+
   return (
+    <>
     <div className="space-y-4">
-      {tasks.map((task) => {
+      {visibleTasks.map((task) => {
         const displayStatus = task.workflowState ?? task.status;
         return (
         <Link
@@ -90,5 +102,13 @@ export function TaskList({
         );
       })}
     </div>
+    {pageSize && pageCount > 1 ? (
+      <div className="mt-4 flex items-center justify-end gap-3">
+        <button type="button" disabled={page === 0} onClick={() => setPage((value) => value - 1)} aria-label="Previous jobs" className="rounded-lg border border-zinc-800 p-2 text-zinc-500 transition hover:text-white disabled:opacity-30"><ChevronLeft size={16} /></button>
+        <span className="text-xs text-zinc-600">{page + 1} / {pageCount}</span>
+        <button type="button" disabled={page + 1 >= pageCount} onClick={() => setPage((value) => value + 1)} aria-label="Next jobs" className="rounded-lg border border-zinc-800 p-2 text-zinc-500 transition hover:text-white disabled:opacity-30"><ChevronRight size={16} /></button>
+      </div>
+    ) : null}
+    </>
   );
 }

@@ -20,6 +20,11 @@ export default async function EmployedAgentPage({ params }: Props) {
           ...task,
           createdAt: task.createdAt.toISOString(),
         }))}
+        schedules={details.schedules.map((schedule) => ({
+          ...schedule,
+          nextRunAt: schedule.nextRunAt?.toISOString() ?? null,
+          lastRunAt: schedule.lastRunAt?.toISOString() ?? null,
+        }))}
       />
     </DashboardLayout>
   );

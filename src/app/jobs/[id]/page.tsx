@@ -3,14 +3,18 @@ import { TaskDetailsClient } from "@/components/tasks/task-details-client";
 
 type Props = {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ fromAgent?: string }>;
+  searchParams: Promise<{ fromAgent?: string; fromSchedule?: string }>;
 };
 
 export default async function JobPage({ params, searchParams }: Props) {
-  const [{ id }, { fromAgent }] = await Promise.all([params, searchParams]);
+  const [{ id }, { fromAgent, fromSchedule }] = await Promise.all([params, searchParams]);
   return (
     <DashboardLayout>
-      <TaskDetailsClient taskId={id} returnToAgentId={fromAgent} />
+      <TaskDetailsClient
+        taskId={id}
+        returnToAgentId={fromAgent}
+        returnToScheduleId={fromSchedule}
+      />
     </DashboardLayout>
   );
 }

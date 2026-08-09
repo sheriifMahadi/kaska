@@ -6,10 +6,13 @@ import { db } from "@/lib/db";
 import { requireCurrentWallet } from
   "@/modules/identity/application/current-wallet";
 import { errorResponse } from "@/shared/http/error-response";
+import { syncPendingWithdrawals } from
+  "@/modules/wallets/application/sync-pending-withdrawals";
 
 export async function GET() {
   try {
     const { user } = await requireCurrentWallet();
+    await syncPendingWithdrawals(5, user.id);
     const transactions = await db
       .select({
         id: walletTransactions.id,

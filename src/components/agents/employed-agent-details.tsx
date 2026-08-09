@@ -6,6 +6,7 @@ import { useState } from "react";
 import { Archive, ArrowLeft, CalendarClock, CircleDollarSign, Play } from "lucide-react";
 
 import { TaskList } from "@/components/tasks/task-list";
+import { AgentSchedules } from "./agent-schedules";
 
 type Agent = {
   userAgentId: string;
@@ -27,12 +28,27 @@ type Job = {
   createdAt: string;
 };
 
+type Schedule = {
+  id: string;
+  name: string;
+  status: "active" | "paused" | "auto_paused" | "completed" | "cancelled";
+  intervalMinutes: number;
+  spendingLimit: string;
+  spentAmount: string;
+  runCount: number;
+  timezone: string;
+  nextRunAt: string | null;
+};
+
+
 export function EmployedAgentDetails({
   agent,
   tasks,
+  schedules,
 }: {
   agent: Agent;
   tasks: Job[];
+  schedules: Schedule[];
 }) {
   const router = useRouter();
   const [archiving, setArchiving] = useState(false);
@@ -95,12 +111,18 @@ export function EmployedAgentDetails({
         {error ? <p className="mt-4 text-sm text-red-400">{error}</p> : null}
       </section>
 
+      <AgentSchedules schedules={schedules} agentId={agent.userAgentId} />
+
       <section>
         <div className="mb-4 flex items-end justify-between gap-4">
           <div><h2 className="text-xl font-semibold">Job history</h2><p className="mt-1 text-sm text-zinc-500">All work completed or attempted by this agent.</p></div>
           <span className="text-sm text-zinc-600">{tasks.length} total</span>
         </div>
-        <TaskList tasks={tasks} returnToAgentId={agent.userAgentId} />
+        <TaskList
+          tasks={tasks}
+          returnToAgentId={agent.userAgentId}
+          pageSize={5}
+        />
       </section>
     </div>
   );

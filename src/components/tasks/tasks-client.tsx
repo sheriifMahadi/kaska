@@ -4,8 +4,8 @@ import { useEffect, useState } from "react";
 
 import { EmptyState } from "./empty-state";
 import { TaskAgentCard } from "./task-agent-card";
-import { TaskList } from "./task-list";
 import { PageLoadingSkeleton } from "@/components/shared/loading-skeleton";
+import { TaskList } from "./task-list";
 
 type UserAgent = {
   userAgentId: string;
@@ -27,19 +27,10 @@ type UserAgent = {
 type Task = {
   id: string;
   title: string;
-  prompt: string;
-  priority: string;
   status: string;
   workflowState: string;
   createdAt: string;
-  startedAt: string |null;
-  completedAt: string |null;
-
-  userAgentId: string;
-
-  agentId: string;
   agentName: string;
-  agentType: string;
 };
 
 export function TasksClient() {
@@ -59,14 +50,14 @@ export function TasksClient() {
       }
 
       if (!tasksRes.ok) {
-        throw new Error("Failed to load tasks");
+        throw new Error("Failed to load jobs");
       }
 
       const agentsData: UserAgent[] = await agentsRes.json();
       const tasksData: Task[] = await tasksRes.json();
 
       setAgents(agentsData);
-      setTasks(tasksData.slice(0, 10));
+      setTasks(tasksData.slice(0, 5));
     } catch (error) {
       console.error(error);
     } finally {
@@ -116,12 +107,8 @@ export function TasksClient() {
         )}
       </section>
 
-      {/* Recent Tasks */}
       <section className="space-y-4">
-        <h2 className="text-xl font-semibold text-white">
-          Recent Jobs
-        </h2>
-
+        <h2 className="text-xl font-semibold text-white">Recent Jobs</h2>
         <TaskList tasks={tasks} />
       </section>
     </div>

@@ -50,7 +50,7 @@ function eventText(item: Item) {
 }
 
 function eventHref(item: Item) {
-  if (item.kind === "schedule") return "/schedules";
+  if (item.kind === "schedule") return "/jobs";
   if (item.kind === "transaction") return "/transactions";
   return `/jobs/${item.targetId}`;
 }

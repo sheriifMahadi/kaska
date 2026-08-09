@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { ListLoadingSkeleton } from "@/components/shared/loading-skeleton";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 
 type WalletTransaction = {
   id: string;
@@ -28,9 +29,19 @@ export default function WalletTransactions({ refreshKey = 0 }: Props) {
     WalletTransaction[]
   >([]);
   const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(0);
+  const pageSize = 5;
   const pendingCount = transactions.filter(
     (transaction) => transaction.status === "pending"
   ).length;
+  const pageCount = Math.max(
+    1,
+    Math.ceil(transactions.length / pageSize)
+  );
+  const visibleTransactions = transactions.slice(
+    page * pageSize,
+    page * pageSize + pageSize
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -86,7 +97,7 @@ export default function WalletTransactions({ refreshKey = 0 }: Props) {
           </p>
         )}
 
-        {transactions.map((transaction) => (
+        {visibleTransactions.map((transaction) => (
           <div
             key={transaction.id}
             className="flex items-center justify-between gap-4 px-6 py-5"
@@ -134,6 +145,13 @@ export default function WalletTransactions({ refreshKey = 0 }: Props) {
           </div>
         ))}
       </div>
+      {pageCount > 1 ? (
+        <div className="flex items-center justify-end gap-3">
+          <button type="button" disabled={page === 0} onClick={() => setPage((value) => value - 1)} aria-label="Previous transactions" className="rounded-lg border border-zinc-800 p-2 text-zinc-500 transition hover:text-white disabled:opacity-30"><ChevronLeft size={16} /></button>
+          <span className="text-xs text-zinc-600">{page + 1} / {pageCount}</span>
+          <button type="button" disabled={page + 1 >= pageCount} onClick={() => setPage((value) => value + 1)} aria-label="Next transactions" className="rounded-lg border border-zinc-800 p-2 text-zinc-500 transition hover:text-white disabled:opacity-30"><ChevronRight size={16} /></button>
+        </div>
+      ) : null}
     </div>
   );
 }

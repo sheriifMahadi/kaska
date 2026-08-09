@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import ReactMarkdown from "react-markdown";
+import { ChevronDown } from "lucide-react";
 import { PageLoadingSkeleton } from "@/components/shared/loading-skeleton";
 
 type Attempt = {
@@ -110,14 +111,17 @@ const statusStyles: Record<string, string> = {
 export function TaskDetailsClient({
   taskId,
   returnToAgentId,
+  returnToScheduleId,
 }: {
   taskId: string;
   returnToAgentId?: string;
+  returnToScheduleId?: string;
 }) {
   const [task, setTask] = useState<Task | null>(null);
   const [loading, setLoading] = useState(true);
   const [actionPending, setActionPending] = useState(false);
   const [pageError, setPageError] = useState<string | null>(null);
+  const [resultOpen, setResultOpen] = useState(true);
 
   const loadTask = useCallback(async (signal?: AbortSignal) => {
     try {
@@ -187,7 +191,13 @@ export function TaskDetailsClient({
       <div className="flex flex-wrap items-start justify-between gap-4 rounded-xl border border-zinc-800 bg-zinc-950 p-6">
         <div>
           <Link
-            href={returnToAgentId ? "/jobs/agents/" + returnToAgentId : "/jobs"}
+            href={
+              returnToScheduleId
+                ? "/schedules/" + returnToScheduleId
+                : returnToAgentId
+                  ? "/jobs/agents/" + returnToAgentId
+                  : "/jobs"
+            }
             className="text-sm text-zinc-500 transition hover:text-white"
           >
             ← Back
@@ -269,24 +279,37 @@ export function TaskDetailsClient({
         )}
       </section>
 
-      <TaskTimeline task={task} />
+      <section className="rounded-xl border border-zinc-800 bg-zinc-950">
+        <button
+          type="button"
+          onClick={() => setResultOpen((value) => !value)}
+          aria-expanded={resultOpen}
+          className="flex w-full items-center justify-between gap-4 p-6 text-left"
+        >
+          <h2 className="font-semibold text-white">Result</h2>
+          <ChevronDown
+            size={18}
+            className={`text-zinc-500 transition ${resultOpen ? "rotate-180" : ""}`}
+          />
+        </button>
+        {resultOpen ? (
+          <div className="border-t border-zinc-800 px-6 pb-6 pt-5">
+            {task.output ? (
+              <div className="space-y-4 text-zinc-300 [&_a]:text-violet-400 [&_a]:underline [&_h1]:mt-6 [&_h1]:text-xl [&_h1]:font-semibold [&_h1]:text-white [&_h2]:mt-5 [&_h2]:text-lg [&_h2]:font-semibold [&_li]:ml-5 [&_li]:list-disc [&_ol>li]:list-decimal [&_p]:leading-7 [&_pre]:overflow-x-auto [&_pre]:rounded-lg [&_pre]:bg-black [&_pre]:p-4 [&_strong]:text-white">
+                <ReactMarkdown components={{ a: ({ ...props }) => <a {...props} target="_blank" rel="noreferrer" /> }}>
+                  {task.output}
+                </ReactMarkdown>
+              </div>
+            ) : (
+              <p className="text-zinc-500">{resultPlaceholder(task.status)}</p>
+            )}
+          </div>
+        ) : null}
+      </section>
 
       <section className="rounded-xl border border-zinc-800 bg-zinc-950 p-6">
         <h2 className="mb-4 font-semibold text-white">Prompt</h2>
         <p className="whitespace-pre-wrap text-zinc-300">{task.prompt}</p>
-      </section>
-
-      <section className="rounded-xl border border-zinc-800 bg-zinc-950 p-6">
-        <h2 className="mb-5 font-semibold text-white">Result</h2>
-        {task.output ? (
-          <div className="space-y-4 text-zinc-300 [&_a]:text-violet-400 [&_a]:underline [&_h1]:mt-6 [&_h1]:text-xl [&_h1]:font-semibold [&_h1]:text-white [&_h2]:mt-5 [&_h2]:text-lg [&_h2]:font-semibold [&_li]:ml-5 [&_li]:list-disc [&_ol>li]:list-decimal [&_p]:leading-7 [&_pre]:overflow-x-auto [&_pre]:rounded-lg [&_pre]:bg-black [&_pre]:p-4 [&_strong]:text-white">
-            <ReactMarkdown components={{ a: ({ ...props }) => <a {...props} target="_blank" rel="noreferrer" /> }}>
-              {task.output}
-            </ReactMarkdown>
-          </div>
-        ) : (
-          <p className="text-zinc-500">{resultPlaceholder(task.status)}</p>
-        )}
       </section>
 
       {task.error && (
@@ -296,6 +319,8 @@ export function TaskDetailsClient({
           {task.errorCode && <p className="mt-2 font-mono text-xs text-red-400">{task.errorCode}</p>}
         </section>
       )}
+
+      <TaskTimeline task={task} />
 
       <section className="rounded-xl border border-zinc-800 bg-zinc-950 p-6">
         <h2 className="mb-4 font-semibold text-white">Execution details</h2>
@@ -336,10 +361,22 @@ function TransactionDetail({ label, hash }: { label: string; hash: string | null
 
 function TaskTimeline({ task }: { task: Task }) {
   const events = buildTimeline(task);
+  const [open, setOpen] = useState(false);
   return (
-    <section className="rounded-xl border border-zinc-800 bg-zinc-950 p-6">
-      <h2 className="mb-5 font-semibold text-white">Job timeline</h2>
-      <div>
+    <section className="rounded-xl border border-zinc-800 bg-zinc-950">
+      <button
+        type="button"
+        onClick={() => setOpen((value) => !value)}
+        aria-expanded={open}
+        className="flex w-full items-center justify-between gap-4 p-6 text-left"
+      >
+        <h2 className="font-semibold text-white">Job timeline</h2>
+        <ChevronDown
+          size={18}
+          className={`text-zinc-500 transition ${open ? "rotate-180" : ""}`}
+        />
+      </button>
+      {open ? <div className="border-t border-zinc-800 px-6 pb-6 pt-5">
         {events.map((event, index) => (
           <div key={event.key} className="relative grid grid-cols-[20px_1fr] gap-3 pb-6 last:pb-0">
             {index < events.length - 1 && <span className="absolute left-[5px] top-3 h-full w-px bg-zinc-800" />}
@@ -360,7 +397,7 @@ function TaskTimeline({ task }: { task: Task }) {
             </div>
           </div>
         ))}
-      </div>
+      </div> : null}
     </section>
   );
 }

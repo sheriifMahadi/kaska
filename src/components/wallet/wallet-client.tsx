@@ -220,14 +220,7 @@ export default function WalletClient() {
       {lifecycle?.status === "active" && wallet && (
         <>
           <div className="rounded-2xl border border-zinc-800 bg-zinc-950 p-6">
-            <p className="text-xs uppercase tracking-wide text-zinc-500">
-              Arc wallet address
-            </p>
-            <code className="mt-2 block break-all text-sm text-emerald-300">
-              {wallet.address}
-            </code>
-
-            <div className="mt-6 grid gap-4 md:grid-cols-3">
+            <div className="grid gap-4 md:grid-cols-3">
               <WalletBalanceCard
                 title="Total"
                 value={wallet.totalBalance}

@@ -82,6 +82,7 @@ export async function createRecurringJob(userId: string, raw: unknown) {
 export function listRecurringJobs(userId: string) {
   return db.select({
     id: recurringJobs.id,
+    userAgentId: recurringJobs.userAgentId,
     name: recurringJobs.name,
     instructions: recurringJobs.instructions,
     status: recurringJobs.status,

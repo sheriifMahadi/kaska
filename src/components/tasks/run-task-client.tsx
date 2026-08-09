@@ -14,6 +14,8 @@ type Agent = {
   description: string;
   capabilities: string[];
   status: "active";
+  supportsOneTime: boolean;
+  supportsRecurring: boolean;
 };
 
 type Props = {
