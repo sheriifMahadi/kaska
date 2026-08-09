@@ -50,7 +50,9 @@ export function TaskForm({ agent }: Props) {
         throw new Error(data.error || "Failed");
       }
 
-      router.push(`/tasks/${data.task.id}`);
+      router.push(
+        `/jobs/${data.task.id}?fromAgent=${encodeURIComponent(agent.userAgentId)}`
+      );
     } catch (err) {
       console.error(err);
       setMessage(
@@ -129,7 +131,7 @@ export function TaskForm({ agent }: Props) {
           disabled={loading || title.trim().length < 3 || prompt.trim().length < 10}
           className="rounded-lg bg-violet-600 px-6 py-3 font-medium text-white transition hover:bg-violet-500 disabled:opacity-50"
         >
-          {loading ? "Queueing..." : "Run Task"}
+          {loading ? "Queueing..." : "Run job"}
         </button>
 
       </form>

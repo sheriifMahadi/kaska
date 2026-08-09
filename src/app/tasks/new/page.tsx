@@ -1,5 +1,4 @@
-import DashboardLayout from "@/components/layout/dashboard-layout";
-import { RunTaskClient } from "@/components/tasks/run-task-client";
+import { redirect } from "next/navigation";
 
 type Props = {
   searchParams: Promise<{
@@ -12,9 +11,5 @@ export default async function NewTaskPage({
 }: Props) {
   const { agent } = await searchParams;
 
-  return (
-    <DashboardLayout>
-      <RunTaskClient userAgentId={agent ?? ""} />
-    </DashboardLayout>
-  );
+  redirect(agent ? `/jobs/new?agent=${encodeURIComponent(agent)}` : "/jobs/new");
 }

@@ -1,5 +1,4 @@
-import DashboardLayout from "@/components/layout/dashboard-layout";
-import { TaskDetailsClient } from "@/components/tasks/task-details-client";
+import { redirect } from "next/navigation";
 
 type Props = {
   params: Promise<{
@@ -12,9 +11,5 @@ export default async function TaskPage({
 }: Props) {
   const { id } = await params;
 
-  return (
-    <DashboardLayout>
-      <TaskDetailsClient taskId={id} />
-    </DashboardLayout>
-  );
+  redirect(`/jobs/${id}`);
 }

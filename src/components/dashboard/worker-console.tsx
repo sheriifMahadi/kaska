@@ -51,7 +51,7 @@ function eventText(item: Item) {
 function eventHref(item: Item) {
   if (item.kind === "schedule") return "/schedules";
   if (item.kind === "transaction") return "/transactions";
-  return `/tasks/${item.targetId}`;
+  return `/jobs/${item.targetId}`;
 }
 
 function words(value: string) {

@@ -1,10 +1,5 @@
-import DashboardLayout from "@/components/layout/dashboard-layout";
-import { TasksClient } from "@/components/tasks/tasks-client";
+import { redirect } from "next/navigation";
 
 export default function TasksPage() {
-  return (
-    <DashboardLayout>
-      <TasksClient />
-    </DashboardLayout>
-  );
+  redirect("/jobs");
 }

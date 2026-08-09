@@ -19,8 +19,8 @@ export const dashboardNav = [
     icon: Bot,
   },
   {
-    title: "Tasks",
-    href: "/tasks",
+    title: "Jobs",
+    href: "/jobs",
     icon: ListTodo,
   },
   {

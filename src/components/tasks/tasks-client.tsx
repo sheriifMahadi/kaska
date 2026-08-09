@@ -65,7 +65,7 @@ export function TasksClient() {
       const tasksData: Task[] = await tasksRes.json();
 
       setAgents(agentsData);
-      setTasks(tasksData);
+      setTasks(tasksData.slice(0, 10));
     } catch (error) {
       console.error(error);
     } finally {
@@ -88,32 +88,31 @@ export function TasksClient() {
   }
 
   return (
-    <div className="space-y-10">
+    <div className="space-y-10 p-4 sm:p-6 lg:p-8">
       <div>
         <h1 className="text-3xl font-bold text-white">
-          My Agents
+          Jobs
         </h1>
 
         <p className="mt-2 text-zinc-400">
-          Manage your AI workforce and monitor active tasks.
+          Run your agents and review your latest work.
         </p>
       </div>
 
       {/* Hired Agents */}
       <section className="space-y-4">
         <h2 className="text-xl font-semibold text-white">
-          Hired Agents
+          Your Agents
         </h2>
 
         {agents.length === 0 ? (
           <EmptyState />
         ) : (
-          <div className="grid gap-6 lg:grid-cols-2">
+          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
             {agents.map((agent) => (
               <TaskAgentCard
                 key={agent.userAgentId}
                 agent={agent}
-                onUpdated={loadData}
               />
             ))}
           </div>
@@ -123,7 +122,7 @@ export function TasksClient() {
       {/* Recent Tasks */}
       <section className="space-y-4">
         <h2 className="text-xl font-semibold text-white">
-          Recent Tasks
+          Recent Jobs
         </h2>
 
         <TaskList tasks={tasks} />

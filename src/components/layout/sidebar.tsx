@@ -59,7 +59,8 @@ export function Sidebar() {
       <nav className="min-h-0 flex-1 space-y-2 overflow-y-auto px-4 py-6 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {dashboardNav.map((item) => {
           const Icon = item.icon;
-          const active = pathname === item.href;
+          const active =
+            pathname === item.href || pathname.startsWith(item.href + "/");
 
           return (
             <Link

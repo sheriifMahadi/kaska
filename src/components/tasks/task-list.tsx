@@ -33,13 +33,15 @@ const colors: Record<string, string> = {
 
 export function TaskList({
   tasks,
+  returnToAgentId,
 }: {
   tasks: Task[];
+  returnToAgentId?: string;
 }) {
   if (!tasks.length) {
     return (
       <div className="rounded-xl border border-zinc-800 p-8 text-center text-zinc-500">
-        No tasks yet.
+        No jobs yet.
       </div>
     );
   }
@@ -51,7 +53,12 @@ export function TaskList({
         return (
         <Link
           key={task.id}
-          href={`/tasks/${task.id}`}
+          href={
+            `/jobs/${task.id}` +
+            (returnToAgentId
+              ? `?fromAgent=${encodeURIComponent(returnToAgentId)}`
+              : "")
+          }
           className="block"
         >
           <div className="rounded-xl border border-zinc-800 bg-zinc-950 p-5 transition-colors hover:border-zinc-700 hover:bg-zinc-900">

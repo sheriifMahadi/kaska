@@ -106,7 +106,13 @@ const statusStyles: Record<string, string> = {
   REFUNDED: "bg-zinc-700 text-zinc-300",
 };
 
-export function TaskDetailsClient({ taskId }: { taskId: string }) {
+export function TaskDetailsClient({
+  taskId,
+  returnToAgentId,
+}: {
+  taskId: string;
+  returnToAgentId?: string;
+}) {
   const [task, setTask] = useState<Task | null>(null);
   const [loading, setLoading] = useState(true);
   const [actionPending, setActionPending] = useState(false);
@@ -172,14 +178,19 @@ export function TaskDetailsClient({ taskId }: { taskId: string }) {
     }
   }
 
-  if (loading) return <div className="text-zinc-400">Loading task...</div>;
-  if (!task) return <div className="text-red-400">{pageError ?? "Task not found."}</div>;
+  if (loading) return <div className="text-zinc-400">Loading job...</div>;
+  if (!task) return <div className="text-red-400">{pageError ?? "Job not found."}</div>;
 
   return (
     <div className="mx-auto max-w-5xl space-y-6">
       <div className="flex flex-wrap items-start justify-between gap-4 rounded-xl border border-zinc-800 bg-zinc-950 p-6">
         <div>
-          <Link href="/tasks" className="text-sm text-violet-400 hover:text-violet-300">← Tasks</Link>
+          <Link
+            href={returnToAgentId ? "/jobs/agents/" + returnToAgentId : "/jobs"}
+            className="text-sm text-zinc-500 transition hover:text-white"
+          >
+            ← Back
+          </Link>
           <h1 className="mt-3 text-2xl font-bold text-white">{task.title}</h1>
           <p className="mt-1 text-zinc-400">{task.agentName}</p>
         </div>
@@ -326,7 +337,7 @@ function TaskTimeline({ task }: { task: Task }) {
   const events = buildTimeline(task);
   return (
     <section className="rounded-xl border border-zinc-800 bg-zinc-950 p-6">
-      <h2 className="mb-5 font-semibold text-white">Task timeline</h2>
+      <h2 className="mb-5 font-semibold text-white">Job timeline</h2>
       <div>
         {events.map((event, index) => (
           <div key={event.key} className="relative grid grid-cols-[20px_1fr] gap-3 pb-6 last:pb-0">
