@@ -28,6 +28,8 @@ export function AgentsClient({ initialAgents }: Props) {
   const [agents, setAgents] = useState<Agent[]>(initialAgents);
 
   const [search, setSearch] = useState("");
+  const [workType, setWorkType] =
+    useState<"all" | "one-time" | "recurring">("all");
 
   const [creatingTaskId, setCreatingTaskId] =
     useState<string | null>(null);
@@ -75,21 +77,33 @@ export function AgentsClient({ initialAgents }: Props) {
 }
 
   const filteredAgents = useMemo(() => {
-    return agents.filter((agent) =>
-      agent.name
-        .toLowerCase()
-        .includes(search.toLowerCase())
-    );
-  }, [agents, search]);
+    const query = search.trim().toLowerCase();
+    return agents.filter((agent) => {
+      const matchesSearch =
+        !query ||
+        agent.name.toLowerCase().includes(query) ||
+        agent.description.toLowerCase().includes(query) ||
+        agent.capabilities.some((capability) =>
+          capability.replaceAll("-", " ").includes(query)
+        );
+      const matchesType =
+        workType === "all" ||
+        (workType === "one-time" && agent.supportsOneTime) ||
+        (workType === "recurring" && agent.supportsRecurring);
+      return matchesSearch && matchesType;
+    });
+  }, [agents, search, workType]);
 
   return (
-    <div className="min-h-screen bg-[#050505] p-8">
+    <div className="min-h-screen bg-[#050505] p-4 sm:p-6 lg:p-8">
 
       <MarketplaceHeader />
 
       <MarketplaceToolbar
         search={search}
         onSearch={setSearch}
+        workType={workType}
+        onWorkTypeChange={setWorkType}
       />
 
       {message && (

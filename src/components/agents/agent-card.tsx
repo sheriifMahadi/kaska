@@ -35,16 +35,21 @@ export function AgentCard({
             {agent.name}
           </h3>
 
-          <p className="text-sm text-violet-400">
-            {agent.capabilities.join(" · ")}
-          </p>
         </div>
 
       </div>
 
-      <p className="mb-6 text-sm leading-6 text-zinc-400">
+      <p className="mb-5 min-h-12 text-sm leading-6 text-zinc-400">
         {agent.description}
       </p>
+
+      <div className="mb-6 flex flex-wrap gap-2">
+        {agent.capabilities.map((capability) => (
+          <span key={capability} className="rounded-md border border-zinc-800 bg-black px-2 py-1 text-xs text-zinc-500">
+            {capability.replaceAll("-", " ")}
+          </span>
+        ))}
+      </div>
 
       <div className="mb-6">
         <p className="text-lg font-bold text-white">

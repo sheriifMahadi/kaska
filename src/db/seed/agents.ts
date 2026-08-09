@@ -52,6 +52,58 @@ const catalog = [
     supportsRecurring: true,
     isActive: true,
   },
+  {
+    name: "Trading Research Agent",
+    slug: "trading-research-agent",
+    description:
+      "Monitors market information and produces risk-aware trading research without executing trades",
+    capabilities: ["web-search", "market-research", "risk-analysis"],
+    executionProvider: "openai" as const,
+    pricingType: "fixed_per_run" as const,
+    price: "0.75",
+    supportsOneTime: true,
+    supportsRecurring: true,
+    isActive: true,
+  },
+  {
+    name: "Web Scraper Agent",
+    slug: "web-scraper-agent",
+    description:
+      "Collects structured information from public web pages and returns source-backed summaries",
+    capabilities: ["web-search", "data-extraction", "structured-output"],
+    executionProvider: "openai" as const,
+    pricingType: "fixed_per_run" as const,
+    price: "0.35",
+    supportsOneTime: true,
+    supportsRecurring: true,
+    isActive: true,
+  },
+  {
+    name: "X Content Agent",
+    slug: "x-content-agent",
+    description:
+      "Creates X content plans, post drafts, threads, and recurring campaign ideas for review",
+    capabilities: ["social-strategy", "x-content", "copywriting"],
+    executionProvider: "openrouter" as const,
+    pricingType: "fixed_per_run" as const,
+    price: "0.40",
+    supportsOneTime: true,
+    supportsRecurring: true,
+    isActive: true,
+  },
+  {
+    name: "Instagram Content Agent",
+    slug: "instagram-content-agent",
+    description:
+      "Creates Instagram content calendars, caption drafts, concepts, and hashtag suggestions for review",
+    capabilities: ["social-strategy", "instagram-content", "copywriting"],
+    executionProvider: "openrouter" as const,
+    pricingType: "fixed_per_run" as const,
+    price: "0.45",
+    supportsOneTime: true,
+    supportsRecurring: true,
+    isActive: true,
+  },
 ];
 
 async function seed() {

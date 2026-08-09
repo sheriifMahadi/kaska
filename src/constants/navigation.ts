@@ -14,7 +14,7 @@ export const dashboardNav = [
     icon: LayoutDashboard,
   },
   {
-    title: "Marketplace",
+    title: "Agents",
     href: "/agents",
     icon: Bot,
   },
