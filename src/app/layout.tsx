@@ -4,8 +4,9 @@ import { ClerkProvider } from "@clerk/nextjs";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Kaska",
-  description: "Hire And Manage Your Own AI Workers.",
+  title: "Kaska — Put AI Agents to Work",
+  description:
+    "Employ AI agents for one-time or recurring work with USDC payments on Arc.",
 };
 
 export default function RootLayout({

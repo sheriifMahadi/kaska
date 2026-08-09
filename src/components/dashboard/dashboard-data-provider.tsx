@@ -2,6 +2,7 @@
 
 import {
   createContext,
+  useCallback,
   useContext,
   useEffect,
   useMemo,
@@ -33,6 +34,7 @@ type DashboardContextValue = {
   data: DashboardData | null;
   loading: boolean;
   error: string | null;
+  refresh: () => void;
 };
 
 const DashboardContext = createContext<DashboardContextValue | null>(null);
@@ -40,6 +42,9 @@ const DashboardContext = createContext<DashboardContextValue | null>(null);
 export function DashboardDataProvider({ children }: { children: ReactNode }) {
   const [data, setData] = useState<DashboardData | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [refreshKey, setRefreshKey] = useState(0);
+
+  const refresh = useCallback(() => setRefreshKey((value) => value + 1), []);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -68,9 +73,12 @@ export function DashboardDataProvider({ children }: { children: ReactNode }) {
       window.clearInterval(refresh);
       controller.abort();
     };
-  }, []);
+  }, [refreshKey]);
 
-  const value = useMemo(() => ({ data, loading: !data && !error, error }), [data, error]);
+  const value = useMemo(
+    () => ({ data, loading: !data && !error, error, refresh }),
+    [data, error, refresh]
+  );
   return <DashboardContext.Provider value={value}>{children}</DashboardContext.Provider>;
 }
 
