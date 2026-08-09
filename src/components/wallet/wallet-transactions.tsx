@@ -6,6 +6,7 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 
 type WalletTransaction = {
   id: string;
+  title: string | null;
   type: string;
   direction: "credit" | "debit";
   status: "pending" | "confirmed" | "failed";
@@ -104,8 +105,13 @@ export default function WalletTransactions({ refreshKey = 0 }: Props) {
           >
             <div>
               <p className="capitalize text-white">
-                {transaction.type}
+                {transaction.title ?? transaction.type}
               </p>
+              {transaction.title && (
+                <p className="mt-1 capitalize text-sm text-zinc-500">
+                  {transaction.type}
+                </p>
+              )}
               <p className="mt-1 text-sm text-zinc-500">
                 {new Intl.DateTimeFormat(undefined, {
                   dateStyle: "medium",

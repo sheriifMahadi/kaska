@@ -59,8 +59,23 @@ export function Sidebar() {
       <nav className="min-h-0 flex-1 space-y-2 overflow-y-auto px-4 py-6 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {dashboardNav.map((item) => {
           const Icon = item.icon;
+          const disabled = "disabled" in item && item.disabled;
           const active =
-            pathname === item.href || pathname.startsWith(item.href + "/");
+            !disabled &&
+            (pathname === item.href || pathname.startsWith(item.href + "/"));
+
+          if (disabled) {
+            return (
+              <div
+                key={item.href}
+                aria-disabled="true"
+                className="flex cursor-not-allowed items-center gap-3 rounded-xl px-4 py-3 text-zinc-700"
+              >
+                <Icon size={20} />
+                <span className="font-medium">{item.title}</span>
+              </div>
+            );
+          }
 
           return (
             <Link

@@ -1,6 +1,6 @@
 import "server-only";
 
-import { and, desc, eq, sql } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 
 import {
   agents,
@@ -8,7 +8,6 @@ import {
   recurringJobs,
   taskAttempts,
   taskOutputs,
-  taskPaymentAttempts,
   taskPayments,
   tasks,
   userAgents,
@@ -17,7 +16,7 @@ import {
 import { db } from "@/lib/db";
 
 export async function getWorkforceActivity(userId: string) {
-  const [spending, agentSpending, performance, events, completedTasks] =
+  const [spending, agentSpending, performance, events, recentActivity] =
     await Promise.all([
     db.execute<{ date: string; amount: string }>(sql`
       with days as (
@@ -112,18 +111,6 @@ export async function getWorkforceActivity(userId: string) {
 
         union all
 
-        select ${taskPaymentAttempts.id}::text, ${tasks.id}::text, 'payment'::text,
-          ${tasks.title}, ${agents.name}, ${taskPaymentAttempts.kind},
-          ${taskPaymentAttempts.status},
-          coalesce(${taskPaymentAttempts.confirmedAt}, ${taskPaymentAttempts.failedAt}, ${taskPaymentAttempts.submittedAt}, ${taskPaymentAttempts.preparedAt})
-        from ${taskPaymentAttempts}
-        inner join ${tasks} on ${tasks.id} = ${taskPaymentAttempts.taskId}
-        inner join ${userAgents} on ${userAgents.id} = ${tasks.userAgentId} and ${userAgents.userId} = ${userId}
-        inner join ${agents} on ${agents.id} = ${userAgents.agentId}
-        where ${tasks.userId} = ${userId}
-
-        union all
-
         select ${recurringJobs.id}::text, ${recurringJobs.id}::text, 'schedule'::text,
           ${recurringJobs.name}, ${agents.name}, 'schedule_state'::text,
           ${recurringJobs.status}, ${recurringJobs.updatedAt}
@@ -146,43 +133,61 @@ export async function getWorkforceActivity(userId: string) {
 
         union all
 
-        select ${walletTransactions.id}::text, ${walletTransactions.id}::text, 'transaction'::text,
-          initcap(${walletTransactions.type}), null::text,
-          ${walletTransactions.type}, ${walletTransactions.status},
-          coalesce(${walletTransactions.confirmedAt}, ${walletTransactions.failedAt}, ${walletTransactions.createdAt})
-        from ${walletTransactions}
-        where ${walletTransactions.userId} = ${userId}
-
-        union all
-
         select ${tasks.id}::text, ${tasks.id}::text, 'task'::text, ${tasks.title},
           ${agents.name}, 'task_state'::text, ${tasks.status}, ${tasks.updatedAt}
         from ${tasks}
         inner join ${userAgents} on ${userAgents.id} = ${tasks.userAgentId} and ${userAgents.userId} = ${userId}
         inner join ${agents} on ${agents.id} = ${userAgents.agentId}
         where ${tasks.userId} = ${userId}
-          and ${tasks.status} in ('cancelled', 'manual_review')
+          and ${tasks.status} in ('queued', 'running', 'failed', 'cancelled', 'manual_review')
       ) activity
       where "occurredAt" is not null
       order by "occurredAt" desc
       limit 10
     `),
-    db.select({
-      id: tasks.id,
-      title: tasks.title,
-      agentName: agents.name,
-      completedAt: tasks.completedAt,
-      amount: taskPayments.amount,
-    }).from(tasks)
-      .innerJoin(userAgents, and(
-        eq(userAgents.id, tasks.userAgentId),
-        eq(userAgents.userId, userId)
-      ))
-      .innerJoin(agents, eq(agents.id, userAgents.agentId))
-      .leftJoin(taskPayments, eq(taskPayments.taskId, tasks.id))
-      .where(and(eq(tasks.userId, userId), eq(tasks.status, "completed")))
-      .orderBy(desc(tasks.completedAt))
-      .limit(10),
+    db.execute<{
+      id: string;
+      targetId: string;
+      kind: "task" | "transaction";
+      title: string;
+      subtitle: string;
+      status: string;
+      occurredAt: Date;
+    }>(sql`
+      select * from (
+        select ${walletTransactions.id}::text as id,
+          ${walletTransactions.id}::text as "targetId",
+          'transaction'::text as kind,
+          case when ${walletTransactions.type} = 'deposit' then 'Deposit completed' else 'Withdrawal completed' end as title,
+          concat(${walletTransactions.amount}, ' ', ${walletTransactions.currency}) as subtitle,
+          ${walletTransactions.type} as status,
+          ${walletTransactions.confirmedAt} as "occurredAt"
+        from ${walletTransactions}
+        where ${walletTransactions.userId} = ${userId}
+          and ${walletTransactions.status} = 'confirmed'
+          and ${walletTransactions.type} in ('deposit', 'withdrawal')
+          and not exists (
+            select 1 from ${taskPayments}
+            where ${taskPayments.status} = 'refunded'
+              and lower(${taskPayments.settlementTxHash}) = lower(${walletTransactions.txHash})
+          )
+
+        union all
+
+        select ${tasks.id}::text, ${tasks.id}::text, 'task'::text,
+          ${agents.name}, ${tasks.title}, ${tasks.status},
+          coalesce(${tasks.completedAt}, ${tasks.failedAt})
+        from ${tasks}
+        inner join ${userAgents} on ${userAgents.id} = ${tasks.userAgentId}
+          and ${userAgents.userId} = ${userId}
+        inner join ${agents} on ${agents.id} = ${userAgents.agentId}
+        where ${tasks.userId} = ${userId}
+          and ${tasks.status} in ('completed', 'failed')
+      ) recent
+      where "occurredAt" is not null
+      order by "occurredAt" desc
+      limit 10
+    `),
   ]);
 
   return {
@@ -190,6 +195,6 @@ export async function getWorkforceActivity(userId: string) {
     agentSpending,
     performance,
     events: [...events],
-    completedTasks,
+    recentActivity: [...recentActivity],
   };
 }

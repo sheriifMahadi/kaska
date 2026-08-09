@@ -3,7 +3,7 @@ import {
   Bot,
   ListTodo,
   Wallet,
-  ReceiptText,
+  UserRound,
 } from "lucide-react";
 
 export const dashboardNav = [
@@ -28,8 +28,9 @@ export const dashboardNav = [
     icon: Wallet,
   },
   {
-    title: "Transactions",
-    href: "/transactions",
-    icon: ReceiptText,
+    title: "Profile",
+    href: "/profile",
+    icon: UserRound,
+    disabled: true,
   },
 ];

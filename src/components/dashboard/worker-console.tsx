@@ -18,8 +18,8 @@ export default function WorkerConsole({ items, loading }: { items: Item[]; loadi
       <div className="h-72 space-y-3 overflow-y-auto pr-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {loading ? <ListLoadingSkeleton rows={3} /> : items.length === 0 ? <p className="text-sm text-zinc-500">No workforce activity yet.</p> : items.map((item) => (
           <Link key={`${item.eventType}-${item.id}-${item.status}`} href={eventHref(item)} className="block rounded-lg border border-zinc-900 bg-zinc-950 p-3 hover:border-violet-900">
-            <div className="flex items-center justify-between gap-3"><p className="font-medium text-zinc-100">{eventText(item)}</p><span className="text-xs text-zinc-600">{formatDate(item.occurredAt)}</span></div>
-            <p className="mt-1 truncate text-sm text-zinc-400">{item.title}</p>
+            <div className="flex items-center justify-between gap-3"><p className={`text-sm font-medium ${item.status === "failed" ? "text-red-400" : item.status === "completed" ? "text-emerald-400" : "text-amber-200/70"}`}>{eventText(item)}</p><span className="text-[11px] text-zinc-600">{formatDate(item.occurredAt)}</span></div>
+            <p className="mt-1 truncate text-xs text-zinc-500">{item.title}</p>
           </Link>
         ))}
       </div>
@@ -51,7 +51,7 @@ function eventText(item: Item) {
 
 function eventHref(item: Item) {
   if (item.kind === "schedule") return "/jobs";
-  if (item.kind === "transaction") return "/transactions";
+  if (item.kind === "transaction") return "/wallet";
   return `/jobs/${item.targetId}`;
 }
 

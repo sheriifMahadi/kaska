@@ -7,6 +7,7 @@ import { Archive, ArrowLeft, CalendarClock, CircleDollarSign, Play } from "lucid
 
 import { TaskList } from "@/components/tasks/task-list";
 import { AgentSchedules } from "./agent-schedules";
+import { useConfirmation } from "@/components/shared/confirmation-provider";
 
 type Agent = {
   userAgentId: string;
@@ -53,9 +54,14 @@ export function EmployedAgentDetails({
   const router = useRouter();
   const [archiving, setArchiving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const confirmAction = useConfirmation();
 
   async function archiveAgent() {
-    if (!window.confirm("Archive this agent? It will be removed from Jobs, but its job history will remain stored.")) return;
+    if (!(await confirmAction({
+      title: `Archive ${agent.name}?`,
+      description: "The agent will be removed from Jobs, but its job history will remain stored.",
+      confirmLabel: "Archive agent",
+    }))) return;
     setArchiving(true);
     setError(null);
     try {

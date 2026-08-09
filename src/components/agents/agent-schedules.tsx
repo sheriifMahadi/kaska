@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import { ChevronDown } from "lucide-react";
+import { useConfirmation } from "@/components/shared/confirmation-provider";
 
 type ScheduleSummary = {
   id: string;
@@ -48,6 +49,7 @@ export function AgentSchedules({
   const [details, setDetails] = useState<Record<string, ScheduleDetails>>({});
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const confirmAction = useConfirmation();
   const [limits, setLimits] = useState<Record<string, string>>(() =>
     Object.fromEntries(
       schedules.map((schedule) => [schedule.id, schedule.spendingLimit])
@@ -129,7 +131,7 @@ export function AgentSchedules({
                     {!loaded ? <div className="h-24 animate-pulse rounded-lg bg-zinc-900" /> : (
                       <div className="space-y-5">
                         <p className="whitespace-pre-wrap text-sm leading-6 text-zinc-400">{loaded.job.instructions}</p>
-                        {!terminal ? <div className="flex flex-wrap gap-2">{schedule.status === "active" ? <button disabled={busy === schedule.id} onClick={() => update(schedule.id, { status: "paused" })} className={buttonClass}>Pause</button> : <button disabled={busy === schedule.id} onClick={() => update(schedule.id, { status: "active", spendingLimit: schedule.spendingLimit })} className={buttonClass}>Resume</button>}<button disabled={busy === schedule.id} onClick={() => window.confirm("Cancel this recurring job permanently?") && update(schedule.id, { status: "cancelled" })} className="rounded-lg border border-red-900/60 px-3 py-2 text-xs text-red-400">Cancel</button></div> : null}
+                        {!terminal ? <div className="flex flex-wrap gap-2">{schedule.status === "active" ? <button disabled={busy === schedule.id} onClick={() => update(schedule.id, { status: "paused" })} className={buttonClass}>Pause</button> : <button disabled={busy === schedule.id} onClick={() => update(schedule.id, { status: "active", spendingLimit: schedule.spendingLimit })} className={buttonClass}>Resume</button>}<button disabled={busy === schedule.id} onClick={async () => (await confirmAction({ title: `Cancel ${schedule.name}?`, description: "This recurring job will stop permanently. Jobs it already created will remain available.", confirmLabel: "Cancel recurring job" })) && update(schedule.id, { status: "cancelled" })} className="rounded-lg border border-red-900/60 px-3 py-2 text-xs text-red-400">Cancel</button></div> : null}
                         {!terminal ? <div className="flex flex-wrap items-end gap-2"><label className="space-y-1"><span className="block text-xs text-zinc-600">Total spending limit</span><input value={limits[schedule.id] ?? schedule.spendingLimit} onChange={(event) => setLimits((current) => ({ ...current, [schedule.id]: event.target.value }))} className="w-36 rounded-lg border border-zinc-700 bg-black px-3 py-2 text-xs outline-none focus:border-violet-500" /></label><button disabled={busy === schedule.id || limits[schedule.id] === schedule.spendingLimit} onClick={() => update(schedule.id, { spendingLimit: limits[schedule.id] })} className={buttonClass}>Save limit</button></div> : null}
                         <div><p className="mb-2 text-xs uppercase tracking-wider text-zinc-600">Jobs created</p><div className="space-y-2">{loaded.occurrences.filter((item) => item.taskId).length === 0 ? <p className="text-sm text-zinc-600">No jobs have run yet.</p> : loaded.occurrences.filter((item) => item.taskId).map((item) => <Link key={item.id} href={"/jobs/" + item.taskId + (agentId ? "?fromAgent=" + agentId : "")} className="flex items-center justify-between rounded-lg bg-zinc-900 p-3 text-sm"><span className="text-zinc-300">{formatDate(item.scheduledFor, schedule.timezone)}</span><span className="text-xs text-zinc-600">{item.taskStatus ?? item.status}</span></Link>)}</div></div>
                       </div>

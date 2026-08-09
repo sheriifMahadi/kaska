@@ -34,7 +34,7 @@ export default function DashboardClient() {
       <div className="grid gap-8 lg:grid-cols-2">
         <WorkerConsole items={data?.workforceActivity.events ?? []} loading={loading} />
 
-        <ActivityFeed items={data?.workforceActivity.completedTasks ?? []} loading={loading} />
+        <ActivityFeed items={data?.workforceActivity.recentActivity ?? []} loading={loading} />
       </div>
 
     </div>

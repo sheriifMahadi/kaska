@@ -5,6 +5,7 @@ import Link from "next/link";
 import ReactMarkdown from "react-markdown";
 import { ChevronDown } from "lucide-react";
 import { PageLoadingSkeleton } from "@/components/shared/loading-skeleton";
+import { useConfirmation } from "@/components/shared/confirmation-provider";
 
 type Attempt = {
   attemptNumber: number;
@@ -122,6 +123,7 @@ export function TaskDetailsClient({
   const [actionPending, setActionPending] = useState(false);
   const [pageError, setPageError] = useState<string | null>(null);
   const [resultOpen, setResultOpen] = useState(true);
+  const confirmAction = useConfirmation();
 
   const loadTask = useCallback(async (signal?: AbortSignal) => {
     try {
@@ -164,7 +166,14 @@ export function TaskDetailsClient({
   }, [loadTask, task]);
 
   async function performAction(action: "cancel" | "retry") {
-    if (action === "cancel" && !window.confirm("Cancel this task?")) return;
+    if (
+      action === "cancel" &&
+      !(await confirmAction({
+        title: "Cancel this job?",
+        description: "The job will not run. If its funds are already locked, Kaska will return them through the normal refund flow.",
+        confirmLabel: "Cancel job",
+      }))
+    ) return;
     setActionPending(true);
     setPageError(null);
     try {

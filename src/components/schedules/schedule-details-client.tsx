@@ -5,6 +5,7 @@ import { useCallback, useEffect, useState } from "react";
 import { ArrowLeft, CalendarClock, CircleDollarSign, Clock3 } from "lucide-react";
 
 import { PageLoadingSkeleton } from "@/components/shared/loading-skeleton";
+import { useConfirmation } from "@/components/shared/confirmation-provider";
 
 type Occurrence = {
   id: string;
@@ -44,6 +45,7 @@ export function ScheduleDetailsClient({ scheduleId }: { scheduleId: string }) {
   const [saving, setSaving] = useState(false);
   const [limit, setLimit] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const confirmAction = useConfirmation();
 
   const load = useCallback(async () => {
     try {
@@ -98,7 +100,7 @@ export function ScheduleDetailsClient({ scheduleId }: { scheduleId: string }) {
       <section className="rounded-2xl border border-zinc-800 bg-zinc-950 p-5 sm:p-7">
         <div className="flex flex-col justify-between gap-5 sm:flex-row sm:items-start">
           <div><div className="flex flex-wrap items-center gap-3"><h1 className="text-3xl font-bold">{job.name}</h1><span className="text-sm capitalize text-zinc-500">{job.status.replaceAll("_", " ")}</span></div><p className="mt-2 text-zinc-500">{data.agentName}</p></div>
-          {!terminal ? <div className="flex gap-2">{job.status === "active" ? <button disabled={saving} onClick={() => update({ status: "paused" })} className={secondaryButton}>Pause</button> : <button disabled={saving} onClick={() => update({ status: "active", spendingLimit: limit })} className="rounded-lg bg-violet-600 px-4 py-2 text-sm hover:bg-violet-500 disabled:opacity-50">Resume</button>}<button disabled={saving} onClick={() => window.confirm("Cancel this schedule permanently?") && update({ status: "cancelled" })} className="rounded-lg border border-red-900/60 px-4 py-2 text-sm text-red-400 disabled:opacity-50">Cancel</button></div> : null}
+          {!terminal ? <div className="flex gap-2">{job.status === "active" ? <button disabled={saving} onClick={() => update({ status: "paused" })} className={secondaryButton}>Pause</button> : <button disabled={saving} onClick={() => update({ status: "active", spendingLimit: limit })} className="rounded-lg bg-violet-600 px-4 py-2 text-sm hover:bg-violet-500 disabled:opacity-50">Resume</button>}<button disabled={saving} onClick={async () => (await confirmAction({ title: `Cancel ${job.name}?`, description: "This recurring job will stop permanently. Jobs it already created will remain available.", confirmLabel: "Cancel recurring job" })) && update({ status: "cancelled" })} className="rounded-lg border border-red-900/60 px-4 py-2 text-sm text-red-400 disabled:opacity-50">Cancel</button></div> : null}
         </div>
         {job.statusReason ? <p className="mt-4 rounded-lg bg-amber-950/20 p-3 text-sm text-amber-300">{job.statusReason}</p> : null}
         <p className="mt-6 whitespace-pre-wrap leading-7 text-zinc-300">{job.instructions}</p>
