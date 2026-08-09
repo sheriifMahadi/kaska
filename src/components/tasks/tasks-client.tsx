@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { EmptyState } from "./empty-state";
 import { TaskAgentCard } from "./task-agent-card";
 import { TaskList } from "./task-list";
+import { PageLoadingSkeleton } from "@/components/shared/loading-skeleton";
 
 type UserAgent = {
   userAgentId: string;
@@ -80,11 +81,7 @@ export function TasksClient() {
   }, []);
 
   if (loading) {
-    return (
-      <div className="p-8 text-zinc-400">
-        Loading your workspace...
-      </div>
-    );
+    return <PageLoadingSkeleton cards={3} />;
   }
 
   return (

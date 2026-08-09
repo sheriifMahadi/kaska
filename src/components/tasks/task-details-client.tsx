@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import ReactMarkdown from "react-markdown";
+import { PageLoadingSkeleton } from "@/components/shared/loading-skeleton";
 
 type Attempt = {
   attemptNumber: number;
@@ -178,7 +179,7 @@ export function TaskDetailsClient({
     }
   }
 
-  if (loading) return <div className="text-zinc-400">Loading job...</div>;
+  if (loading) return <PageLoadingSkeleton cards={3} />;
   if (!task) return <div className="text-red-400">{pageError ?? "Job not found."}</div>;
 
   return (

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ListLoadingSkeleton } from "@/components/shared/loading-skeleton";
 
 type Item = {
   id: string;
@@ -15,7 +16,7 @@ export default function WorkerConsole({ items, loading }: { items: Item[]; loadi
   return (
     <div className="rounded-2xl border border-zinc-800 bg-black p-6">
       <div className="h-72 space-y-3 overflow-y-auto pr-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-        {loading ? <p className="text-sm text-zinc-500">Loading workforce activity...</p> : items.length === 0 ? <p className="text-sm text-zinc-500">No workforce activity yet.</p> : items.map((item) => (
+        {loading ? <ListLoadingSkeleton rows={3} /> : items.length === 0 ? <p className="text-sm text-zinc-500">No workforce activity yet.</p> : items.map((item) => (
           <Link key={`${item.eventType}-${item.id}-${item.status}`} href={eventHref(item)} className="block rounded-lg border border-zinc-900 bg-zinc-950 p-3 hover:border-violet-900">
             <div className="flex items-center justify-between gap-3"><p className="font-medium text-zinc-100">{eventText(item)}</p><span className="text-xs text-zinc-600">{formatDate(item.occurredAt)}</span></div>
             <p className="mt-1 truncate text-sm text-zinc-400">{item.title}</p>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { ListLoadingSkeleton } from "@/components/shared/loading-skeleton";
 
 type WalletTransaction = {
   id: string;
@@ -76,9 +77,7 @@ export default function WalletTransactions({ refreshKey = 0 }: Props) {
 
       <div className="divide-y divide-zinc-800 rounded-2xl border border-zinc-800 bg-zinc-950">
         {loading && (
-          <p className="px-6 py-5 text-sm text-zinc-500">
-            Loading transactions...
-          </p>
+          <div className="p-4"><ListLoadingSkeleton rows={3} /></div>
         )}
 
         {!loading && transactions.length === 0 && (

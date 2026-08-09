@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { FormEvent, useCallback, useEffect, useState } from "react";
+import { PageLoadingSkeleton } from "@/components/shared/loading-skeleton";
 
 type Agent = {
   userAgentId: string;
@@ -151,7 +152,7 @@ export function SchedulesClient() {
     setHistory((current) => ({ ...current, [id]: data.occurrences }));
   }
 
-  if (loading) return <p className="p-8 text-zinc-400">Loading schedules...</p>;
+  if (loading) return <PageLoadingSkeleton cards={3} />;
 
   return (
     <div className="space-y-8">

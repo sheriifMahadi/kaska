@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
+import { PageLoadingSkeleton } from "@/components/shared/loading-skeleton";
 
 import { TaskForm } from "./task-form";
 
@@ -43,11 +44,7 @@ export function RunTaskClient({ userAgentId }: Props) {
   }, [userAgentId]);
 
   if (loading) {
-    return (
-      <div className="p-8 text-zinc-400">
-        Loading...
-      </div>
-    );
+    return <PageLoadingSkeleton cards={1} />;
   }
 
   if (!agent) {

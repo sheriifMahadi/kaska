@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { PanelLoadingSkeleton } from "@/components/shared/loading-skeleton";
 
 type Point = { date: string; amount: string };
 type AgentSpend = { date: string; agentId: string; agentName: string; amount: string; taskCount: number };
@@ -31,7 +32,7 @@ export default function ActivityChart({ points, agentSpending, performance, load
         </div>
       </div>
       <div className="mb-3 flex min-h-6 justify-end gap-1">{view === "performance" ? <span className="text-xs text-zinc-600">Last 30 days</span> : ([7, 14, 30] as const).map((days) => <button key={days} type="button" onClick={() => setRange(days)} className={`rounded px-2 py-1 text-xs ${range === days ? "text-violet-300" : "text-zinc-600 hover:text-zinc-300"}`}>{days}D</button>)}</div>
-      {loading ? <div className="flex h-52 animate-pulse items-center justify-center rounded-xl bg-zinc-950 text-zinc-600">Loading activity...</div> : view === "timeline" ? <Timeline points={visible} /> : view === "agents" ? <AgentBars agents={agents} /> : <PerformanceTable rows={performance} />}
+      {loading ? <PanelLoadingSkeleton /> : view === "timeline" ? <Timeline points={visible} /> : view === "agents" ? <AgentBars agents={agents} /> : <PerformanceTable rows={performance} />}
     </div>
   );
 }

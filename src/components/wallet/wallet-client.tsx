@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import WalletBalanceCard from "./wallet-balance-card";
 import WalletModal from "./wallet-modal";
 import WalletTransactions from "./wallet-transactions";
+import { PageLoadingSkeleton } from "@/components/shared/loading-skeleton";
 
 type WalletLifecycle = {
   status: "pending" | "active" | "failed";
@@ -133,7 +134,7 @@ export default function WalletClient() {
   }, []);
 
   if (loading) {
-    return <div className="p-8 text-zinc-400">Loading wallet...</div>;
+    return <PageLoadingSkeleton cards={3} />;
   }
 
   return (
