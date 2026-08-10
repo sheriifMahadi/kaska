@@ -22,3 +22,18 @@ test("credential and invalid request errors are not retried", () => {
   const invalid = normalizeProviderError({ status: 400 }, "openrouter", 10);
   assert.equal(invalid.retryable, false);
 });
+
+test("exhausted provider credit is actionable and not retried", () => {
+  const error = normalizeProviderError(
+    Object.assign(new Error("Payment required"), { status: 402 }),
+    "openrouter",
+    25,
+    "test/model"
+  );
+  assert.equal(error.retryable, false);
+  assert.equal(
+    error.message,
+    "The AI provider spending limit or available credit has been reached."
+  );
+  assert.equal(error.code, "PROVIDER_HTTP_402");
+});

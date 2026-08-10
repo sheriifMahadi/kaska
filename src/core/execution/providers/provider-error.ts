@@ -51,6 +51,9 @@ function safeProviderMessage(error: unknown, status: number | null) {
   if (status === 401 || status === 403) {
     return "The configured AI provider rejected Kaska's credentials.";
   }
+  if (status === 402) {
+    return "The AI provider spending limit or available credit has been reached.";
+  }
   if (status === 429) {
     return "The AI provider is temporarily rate limited.";
   }

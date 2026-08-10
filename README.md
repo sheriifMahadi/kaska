@@ -48,6 +48,11 @@ OPENAI_API_KEY=
 HEURIST_API_KEY=
 ```
 
+For testing, use a dedicated OpenRouter API key with a provider-enforced
+spending limit. Kaska records the cost returned for each successful OpenRouter
+execution, but the API-key limit is the hard stop that also covers failed or
+concurrent requests.
+
 `SETTLEMENT_PRIVATE_KEY` must control an address with the deployed contract's
 `SETTLEMENT_ROLE`; it is read only by the worker settlement path. Never expose
 it through a `NEXT_PUBLIC_` variable. Never commit environment files, Circle
@@ -58,6 +63,9 @@ recovery material, or private keys.
 ```bash
 npm run dev        # Next.js development server
 npm run worker     # wallet provisioning and task execution worker
+npm run worker:tasks    # task claiming and AI execution only
+npm run worker:payments # escrow confirmation and settlement only
+npm run worker:wallets  # wallet provisioning and transaction sync only
 npm run typecheck
 npm run lint
 npm test
@@ -65,8 +73,10 @@ npm run build
 npm run check      # all web validation
 ```
 
-The worker is intentionally separate from Next.js. In local development, run
-the web server and worker in different terminals.
+The workers are intentionally separate from Next.js. For simple local
+development, `npm run worker` runs all three responsibilities in one process.
+For deployment or isolation, run the three role-specific commands instead; do
+not run them alongside the all-in-one command.
 
 ## Database
 

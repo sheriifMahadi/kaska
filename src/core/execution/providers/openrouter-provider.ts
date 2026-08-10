@@ -7,6 +7,7 @@ import {
 import { buildOpenRouterRequest } from "./openrouter-request";
 
 type OpenRouterUsage = {
+  cost?: number;
   server_tool_use?: { web_search_requests?: number };
 };
 
@@ -28,6 +29,7 @@ export class OpenRouterProvider implements AIProvider {
     const reportedWebSearchRequests =
       (response.usage as OpenRouterUsage | undefined)?.server_tool_use
         ?.web_search_requests ?? 0;
+    const reportedCost = (response.usage as OpenRouterUsage | undefined)?.cost;
     // The compatibility web plugin always searches once but older response
     // shapes may omit server_tool_use. Its standardized URL citations are the
     // durable evidence that grounded web context was returned.
@@ -47,7 +49,9 @@ export class OpenRouterProvider implements AIProvider {
       inputTokens: response.usage?.prompt_tokens ?? 0,
       outputTokens: response.usage?.completion_tokens ?? 0,
       totalTokens: response.usage?.total_tokens ?? 0,
-      cost: null,
+      cost: typeof reportedCost === "number" && Number.isFinite(reportedCost)
+        ? reportedCost.toFixed(6)
+        : null,
       finishReason: response.choices[0]?.finish_reason ?? null,
       usedTools: webSearchRequests > 0 ? ["web_search"] : [],
       webSearchRequests,
