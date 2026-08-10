@@ -143,7 +143,7 @@ export default function WalletClient() {
         <div>
           <h1 className="text-3xl font-bold text-white">Wallet</h1>
           <p className="mt-2 text-zinc-400">
-            Your Kaska wallet on Arc Testnet.
+            Your Kaska wallet on Arc.
           </p>
         </div>
 

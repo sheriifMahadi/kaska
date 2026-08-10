@@ -26,7 +26,7 @@ export default function ActivityChart({ points, agentSpending, performance, load
   return (
     <div className="rounded-2xl border border-zinc-800 bg-[#0b0b0b] p-6">
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-        <div><h2 className="text-lg font-semibold">Workforce Activity</h2><p className="text-xs text-zinc-500">Verified charges and execution performance</p></div>
+        <h2 className="text-lg font-semibold">Workforce Activity</h2>
         <div className="flex rounded-lg bg-zinc-950 p-1">
           {(["timeline", "agents", "performance"] as const).map((option) => <button key={option} type="button" onClick={() => setView(option)} className={`rounded-md px-3 py-1.5 text-xs capitalize transition ${view === option ? "bg-violet-600 text-white" : "text-zinc-500 hover:text-zinc-200"}`}>{option === "agents" ? "By agent" : option}</button>)}
         </div>

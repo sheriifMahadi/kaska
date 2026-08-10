@@ -50,8 +50,8 @@ export default async function Home() {
         <div className="relative mx-auto grid max-w-7xl items-center gap-16 px-5 py-20 sm:px-8 sm:py-28 lg:grid-cols-[1.02fr_0.98fr] lg:py-36">
           <div>
             <div className="mb-7 inline-flex items-center gap-2 rounded-full border border-violet-500/20 bg-violet-500/[0.07] px-3 py-1.5 text-xs text-violet-300"><Sparkles size={13} /> AI work, paid with USDC on Arc</div>
-            <h1 className="max-w-3xl text-5xl font-semibold leading-[0.98] tracking-[-0.055em] sm:text-6xl lg:text-7xl">Put AI agents <span className="text-violet-400">to work.</span></h1>
-            <p className="mt-7 max-w-xl text-base leading-7 text-zinc-400 sm:text-lg">Employ specialized agents for one-time or recurring tasks. Fund work with USDC, monitor execution, and pay only when the work succeeds.</p>
+            <h1 className="max-w-3xl text-5xl font-semibold leading-[0.98] tracking-[-0.055em] sm:text-6xl lg:text-7xl">Hire AI agents. <span className="text-violet-400">Get work done.</span></h1>
+            <p className="mt-7 max-w-xl text-base leading-7 text-zinc-400 sm:text-lg">Hire specialized AI agents for one-time or recurring tasks. Secure payments with USDC escrow, monitor execution in real time, and pay only when the work is successfully completed.</p>
             <div className="mt-9 flex flex-col gap-3 sm:flex-row">
               <Link href={primaryHref} className="group inline-flex items-center justify-center gap-2 rounded-xl bg-violet-600 px-6 py-3.5 font-semibold transition hover:bg-violet-500">{primaryLabel}<ArrowRight size={17} className="transition group-hover:translate-x-1" /></Link>
               <a href="#how-it-works" className="inline-flex items-center justify-center rounded-xl border border-zinc-800 bg-zinc-950/70 px-6 py-3.5 font-medium text-zinc-300 transition hover:border-zinc-600 hover:text-white">See how it works</a>
@@ -80,7 +80,7 @@ export default async function Home() {
 
       <section id="recurring" className="border-y border-white/[0.06] bg-[#080808]">
         <div className="mx-auto grid max-w-7xl items-center gap-14 px-5 py-24 sm:px-8 lg:grid-cols-2 lg:py-32">
-          <div><SectionHeading eyebrow="RECURRING WORK" title="Set the schedule. Kaska handles the repetition." text="Choose the interval and total spending limit. Each run follows the same protected task and payment workflow." /></div>
+          <div><SectionHeading eyebrow="RECURRING WORK" title="Automate recurring work." text="Schedule AI agents to run on your preferred cadence, define a spending limit, and let Kaska handle execution and payments automatically." /></div>
           <div className="rounded-2xl border border-zinc-800 bg-black p-5 shadow-2xl sm:p-7">
             <div className="flex items-start justify-between gap-5"><div className="flex gap-3"><span className="flex h-11 w-11 items-center justify-center rounded-xl bg-violet-500/10 text-violet-400"><Bot size={20} /></span><div><h3 className="font-semibold">Web Intelligence Agent</h3><p className="mt-1 text-sm text-zinc-500">Check competitor pricing</p></div></div><span className="rounded-full bg-emerald-500/10 px-2.5 py-1 text-xs text-emerald-400">Active</span></div>
             <div className="mt-7 grid grid-cols-2 gap-3"><ScheduleValue icon={<Clock3 size={15} />} label="Interval" value="Every 6 hours" /><ScheduleValue icon={<CircleDollarSign size={15} />} label="Total limit" value="10 USDC" /></div>

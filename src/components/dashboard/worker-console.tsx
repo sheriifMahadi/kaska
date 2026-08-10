@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { ListLoadingSkeleton } from "@/components/shared/loading-skeleton";
 
 type Item = {
@@ -14,14 +13,24 @@ type Item = {
 
 export default function WorkerConsole({ items, loading }: { items: Item[]; loading: boolean }) {
   return (
-    <div className="rounded-2xl border border-zinc-800 bg-black p-6">
-      <div className="h-72 space-y-3 overflow-y-auto pr-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+    <div className="overflow-hidden rounded-2xl border border-zinc-800 bg-black shadow-inner">
+      <div className="flex h-8 items-center gap-1.5 border-b border-zinc-900 bg-zinc-950 px-4" aria-hidden="true">
+        <span className="h-2 w-2 rounded-full bg-red-500/60" />
+        <span className="h-2 w-2 rounded-full bg-amber-400/60" />
+        <span className="h-2 w-2 rounded-full bg-emerald-500/60" />
+      </div>
+      <div className="h-72 overflow-y-auto p-4 font-mono [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {loading ? <ListLoadingSkeleton rows={3} /> : items.length === 0 ? <p className="text-sm text-zinc-500">No workforce activity yet.</p> : items.map((item) => (
-          <Link key={`${item.eventType}-${item.id}-${item.status}`} href={eventHref(item)} className="block rounded-lg border border-zinc-900 bg-zinc-950 p-3 hover:border-violet-900">
-            <div className="flex items-center justify-between gap-3"><p className={`text-sm font-medium ${item.status === "failed" ? "text-red-400" : item.status === "completed" ? "text-emerald-400" : "text-amber-200/70"}`}>{eventText(item)}</p><span className="text-[11px] text-zinc-600">{formatDate(item.occurredAt)}</span></div>
-            <p className="mt-1 truncate text-xs text-zinc-500">{item.title}</p>
-          </Link>
+          <div key={`${item.eventType}-${item.id}-${item.status}`} className="mb-2 flex min-w-0 items-start gap-2 text-xs leading-5">
+            <span className="shrink-0 text-zinc-700">[{formatTime(item.occurredAt)}]</span>
+            <span className={item.status === "failed" ? "text-red-400" : item.status === "completed" ? "text-emerald-400" : "text-amber-200/70"}>&gt;</span>
+            <p className="min-w-0">
+              <span className={item.status === "failed" ? "text-red-400" : item.status === "completed" ? "text-emerald-400" : "text-amber-200/70"}>{eventText(item)}</span>
+              <span className="text-zinc-600"> — {item.title}</span>
+            </p>
+          </div>
         ))}
+        {!loading ? <div className="mt-2 flex items-center gap-2 text-xs text-emerald-500/70"><span>$</span><span className="inline-block h-3.5 w-1.5 animate-pulse bg-emerald-500/70" /></div> : null}
       </div>
     </div>
   );
@@ -49,14 +58,8 @@ function eventText(item: Item) {
   return `${paymentLabels[item.eventType] ?? "Payment"} — ${status}`;
 }
 
-function eventHref(item: Item) {
-  if (item.kind === "schedule") return "/jobs";
-  if (item.kind === "transaction") return "/wallet";
-  return `/jobs/${item.targetId}`;
-}
-
 function words(value: string) {
   return value.replaceAll("_", " ");
 }
 
-function formatDate(value: string) { return new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }).format(new Date(value)); }
+function formatTime(value: string) { return new Intl.DateTimeFormat("en-US", { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false }).format(new Date(value)); }
