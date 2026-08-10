@@ -7,6 +7,7 @@ type Agent = {
   userAgentId: string;
   agentId: string;
   name: string;
+  slug: string;
   description: string;
   capabilities: string[];
   status: "active";
@@ -127,7 +128,7 @@ export function TaskForm({ agent }: Props) {
             rows={8}
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}
-            placeholder="Research the latest stablecoin regulations..."
+            placeholder={instructionPlaceholder(agent.slug)}
             className="w-full rounded-lg border border-zinc-700 bg-zinc-900 p-3 text-white outline-none focus:border-violet-500"
           />
         </div>
@@ -206,3 +207,21 @@ function ScheduleField({
 
 const scheduleControlClass =
   "w-full rounded-lg border border-zinc-700 bg-zinc-900 p-3 text-white outline-none focus:border-violet-500";
+
+function instructionPlaceholder(agentSlug: string) {
+  const examples: Record<string, string> = {
+    "research-agent":
+      "Research the latest stablecoin regulatory developments across major markets. Use current authoritative sources and summarize the key changes.",
+    "content-agent":
+      "Write a 600-word beginner-friendly article explaining how USDC escrow protects customers hiring AI agents.",
+    "web-scraper-agent":
+      "Find the current USD prices of Bitcoin, Ethereum, and Solana from CoinGecko and return a table with source links and the UTC check time.",
+    "trading-research-agent":
+      "Create a current BTC and ETH market brief with prices, recent developments, downside risks, sources, and the UTC check time.",
+    "web-monitoring-agent":
+      "Monitor a specified public webpage for changes. Record the current values, page title, source URL, and UTC check time on every run.",
+  };
+
+  return examples[agentSlug] ??
+    "Describe the result you want, the information to include, and your preferred output format.";
+}

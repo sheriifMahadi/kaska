@@ -11,6 +11,7 @@ type Agent = {
   userAgentId: string;
   agentId: string;
   name: string;
+  slug: string;
   description: string;
   capabilities: string[];
   status: "active";
