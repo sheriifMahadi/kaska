@@ -12,7 +12,7 @@ const catalog = [
     executionProvider: "openai" as const,
     pricingType: "fixed_per_run" as const,
     price: "0.25",
-    supportsOneTime: true,
+    supportsOneTime: false,
     supportsRecurring: true,
     isActive: true,
   },

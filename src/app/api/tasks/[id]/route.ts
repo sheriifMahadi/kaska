@@ -71,6 +71,8 @@ export async function GET(
         inputTokens: taskOutputs.inputTokens,
         outputTokens: taskOutputs.outputTokens,
         finishReason: taskOutputs.finishReason,
+        webSearchRequests: taskOutputs.webSearchRequests,
+        citations: taskOutputs.citations,
         outputFormat: taskOutputs.format,
         cost: taskOutputs.cost,
 

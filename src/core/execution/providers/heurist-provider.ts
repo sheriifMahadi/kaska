@@ -44,6 +44,8 @@ export class HeuristProvider implements AIProvider {
       cost: null,
       finishReason: response.choices[0]?.finish_reason ?? null,
       usedTools: [],
+      webSearchRequests: 0,
+      citations: [],
     };
   }
 }

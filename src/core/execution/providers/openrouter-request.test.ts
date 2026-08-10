@@ -20,5 +20,22 @@ test("OpenRouter receives the trusted model and output limit", () => {
       { role: "user", content: "User task" },
     ],
     max_tokens: 800,
+    plugins: [{
+      id: "web",
+      engine: "parallel",
+      max_results: 5,
+    }],
   });
+});
+
+test("content requests cannot invoke paid web search", () => {
+  const request = buildOpenRouterRequest({
+    model: "mistralai/mistral-small-2603",
+    systemPrompt: "Content prompt",
+    userPrompt: "Write an article",
+    allowWebSearch: false,
+    maxOutputTokens: 1_500,
+    timeoutMs: 90_000,
+  });
+  assert.equal("plugins" in request, false);
 });

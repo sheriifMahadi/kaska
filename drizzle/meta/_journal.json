@@ -211,6 +211,20 @@
       "when": 1786211701003,
       "tag": "0029_reconcile_recurring_spending",
       "breakpoints": true
+    },
+    {
+      "idx": 30,
+      "version": "7",
+      "when": 1786351191166,
+      "tag": "0030_cooing_stingray",
+      "breakpoints": true
+    },
+    {
+      "idx": 31,
+      "version": "7",
+      "when": 1786365754740,
+      "tag": "0031_mute_cardiac",
+      "breakpoints": true
     }
   ]
 }

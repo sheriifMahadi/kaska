@@ -19,6 +19,8 @@ export type ExecutionResult = {
   cost: string | null;
   finishReason: string | null;
   usedTools: string[];
+  webSearchRequests: number;
+  citations: Array<{ title: string; url: string }>;
 };
 
 export interface AIProvider {

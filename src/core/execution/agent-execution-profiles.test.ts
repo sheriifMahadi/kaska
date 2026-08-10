@@ -7,13 +7,14 @@ import {
   listAgentExecutionProfiles,
 } from "./agent-execution-profiles";
 
-test("only the four approved agents have execution profiles", () => {
+test("only the five approved agents have execution profiles", () => {
   assert.deepEqual(
     listAgentExecutionProfiles().map((profile) => profile.agentSlug).sort(),
     [
       "content-agent",
       "research-agent",
       "trading-research-agent",
+      "web-monitoring-agent",
       "web-scraper-agent",
     ]
   );

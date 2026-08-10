@@ -65,6 +65,8 @@ type Task = {
   tokens: string | null;
   latencyMs: number | null;
   finishReason: string | null;
+  webSearchRequests: number | null;
+  citations: Array<{ title: string; url: string }> | null;
   attempts: Attempt[];
   paymentAttempts: PaymentAttempt[];
   paymentStatus: string | null;
@@ -344,6 +346,7 @@ export function TaskDetailsClient({
           <Detail label="Input tokens" value={task.inputTokens?.toString() ?? "—"} />
           <Detail label="Output tokens" value={task.outputTokens?.toString() ?? "—"} />
           <Detail label="Total tokens" value={task.tokens ?? "—"} />
+          <Detail label="Web searches" value={task.webSearchRequests?.toString() ?? "0"} />
           <Detail label="Latency" value={task.latencyMs === null ? "—" : `${task.latencyMs} ms`} />
         </dl>
       </section>

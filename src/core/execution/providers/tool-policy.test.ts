@@ -3,9 +3,9 @@ import test from "node:test";
 
 import { canUseWebSearch } from "./tool-policy";
 
-test("web search is limited to explicitly capable OpenAI agents", () => {
-  assert.equal(canUseWebSearch("openai", ["web-search"]), true);
-  assert.equal(canUseWebSearch("openai", ["summarization"]), false);
-  assert.equal(canUseWebSearch("openrouter", ["web-search"]), false);
-  assert.equal(canUseWebSearch("heurist", ["web-search"]), false);
+test("web search is limited to approved providers and profiles", () => {
+  assert.equal(canUseWebSearch("openai", ["web_search"]), true);
+  assert.equal(canUseWebSearch("openrouter", ["web_search"]), true);
+  assert.equal(canUseWebSearch("openrouter", []), false);
+  assert.equal(canUseWebSearch("heurist", ["web_search"]), false);
 });

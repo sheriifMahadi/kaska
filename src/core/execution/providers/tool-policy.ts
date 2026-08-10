@@ -3,7 +3,10 @@ import type { AgentExecutionProvider } from
 
 export function canUseWebSearch(
   provider: AgentExecutionProvider,
-  capabilities: readonly string[]
+  approvedTools: readonly string[]
 ) {
-  return provider === "openai" && capabilities.includes("web-search");
+  return (
+    (provider === "openrouter" || provider === "openai") &&
+    approvedTools.includes("web_search")
+  );
 }

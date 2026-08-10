@@ -15,6 +15,16 @@ export type AgentExecutionProfile = Readonly<{
 }>;
 
 const profiles = {
+  "web-monitoring-agent": {
+    agentSlug: "web-monitoring-agent",
+    provider: "openrouter",
+    model: "google/gemini-2.5-flash-lite",
+    promptKey: "web_monitoring_v1",
+    tools: ["web_search"],
+    outputFormat: "structured_data_v1",
+    maxOutputTokens: 800,
+    timeoutMs: 90_000,
+  },
   "research-agent": {
     agentSlug: "research-agent",
     provider: "openrouter",

@@ -10,6 +10,12 @@ export type AgentEvaluationCase = Readonly<{
 
 export const AGENT_EVALUATION_CASES: readonly AgentEvaluationCase[] = [
   {
+    promptKey: "web_monitoring_v1",
+    title: "Monitor a public reference value",
+    instructions: "Check the current value of a named metric on its authoritative public page, preserve its units, and return a timestamped monitoring snapshot.",
+    expectations: ["search performed", "timestamped source", "baseline stated", "missing fields explicit"],
+  },
+  {
     promptKey: "research_v1",
     title: "Compare current stablecoin payment options",
     instructions: "Compare three stablecoin payment options for a small SaaS product. Use current primary sources and explain the tradeoffs.",

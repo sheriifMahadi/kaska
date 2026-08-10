@@ -62,6 +62,17 @@ test("web scraper prompt requires structured, traceable extraction", () => {
   assert.match(prompt, /Missing or Unverified Fields/);
 });
 
+test("web monitoring prompt establishes a sourced baseline", () => {
+  const prompt = buildSystemPrompt({
+    agent,
+    promptKey: "web_monitoring_v1",
+    executionTimestamp,
+  });
+  assert.match(prompt, /# Monitoring Snapshot/);
+  assert.match(prompt, /establishes a baseline/);
+  assert.match(prompt, /previous verified value/);
+});
+
 test("crypto prompt separates observations from analysis and risk", () => {
   const prompt = buildSystemPrompt({
     agent,
@@ -74,10 +85,10 @@ test("crypto prompt separates observations from analysis and risk", () => {
 });
 
 test("each approved agent has a repeatable evaluation case", () => {
-  assert.equal(AGENT_EVALUATION_CASES.length, 4);
+  assert.equal(AGENT_EVALUATION_CASES.length, 5);
   assert.equal(
     new Set(AGENT_EVALUATION_CASES.map((item) => item.promptKey)).size,
-    4
+    5
   );
   for (const item of AGENT_EVALUATION_CASES) {
     assert.ok(item.instructions.length >= 40);

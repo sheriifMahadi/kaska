@@ -708,6 +708,13 @@ export const taskOutputs = pgTable(
 
     finishReason: text("finish_reason"),
 
+    webSearchRequests: integer("web_search_requests").notNull().default(0),
+
+    citations: jsonb("citations")
+      .$type<Array<{ title: string; url: string }>>()
+      .notNull()
+      .default([]),
+
     format: text("format").notNull().default("markdown_v1"),
 
     cost: numeric("cost", {

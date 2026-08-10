@@ -43,6 +43,10 @@ export class OpenAIProvider implements AIProvider {
       usedTools: response.output
         .filter((item) => item.type === "web_search_call")
         .map(() => "web_search"),
+      webSearchRequests: response.output.filter(
+        (item) => item.type === "web_search_call"
+      ).length,
+      citations: [],
     };
   }
 }

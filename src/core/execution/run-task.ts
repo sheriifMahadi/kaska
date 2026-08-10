@@ -48,7 +48,7 @@ export async function runTask(taskId: string) {
   try {
     const allowWebSearch = canUseWebSearch(
       profile.provider,
-      context.capabilities
+      profile.tools
     );
     const result = await provider.execute({
       model: profile.model,
@@ -64,7 +64,10 @@ export async function runTask(taskId: string) {
       throw new Error("The AI provider returned an empty result");
     }
     if (allowWebSearch && !result.usedTools.includes("web_search")) {
-      throw new Error("The web monitoring agent did not perform its required web search");
+      throw new Error("The agent did not perform its required web search");
+    }
+    if (allowWebSearch && result.citations.length === 0) {
+      throw new Error("The web search completed without verifiable source citations");
     }
 
     await db.insert(taskOutputs).values({
@@ -80,6 +83,8 @@ export async function runTask(taskId: string) {
       finishReason: result.finishReason,
       format: profile.outputFormat,
       cost: result.cost,
+      webSearchRequests: result.webSearchRequests,
+      citations: result.citations,
     });
 
     return {

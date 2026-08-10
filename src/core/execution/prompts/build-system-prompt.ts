@@ -1,6 +1,7 @@
 export const AGENT_PROMPT_KEYS = [
   "research_v1",
   "content_v1",
+  "web_monitoring_v1",
   "web_scraper_v1",
   "crypto_research_v1",
 ] as const;
@@ -29,6 +30,13 @@ const commonRules = [
 ];
 
 const specializedInstructions: Record<AgentPromptKey, string[]> = {
+  web_monitoring_v1: [
+    "Monitor the requested public subject at this execution time and return a concise, source-backed snapshot for this scheduled run.",
+    "Use the available web-search tool. Never claim that a value changed unless the task provides a previous verified value that can be compared with the current source.",
+    "Preserve exact values, units, page titles, source URLs, and the retrieval time. Mark inaccessible or unverified fields instead of guessing.",
+    "Return Markdown with: # Monitoring Snapshot, # Observed Changes, # Sources, and # Missing or Unverified Fields.",
+    "When no previous verified value is available, state that this run establishes a baseline rather than reporting a change.",
+  ],
   research_v1: [
     "Investigate the question, compare credible evidence, and produce a decision-useful research report.",
     "For current or time-sensitive claims, use the available web-search tool before answering.",
