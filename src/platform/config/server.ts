@@ -40,4 +40,10 @@ export const serverConfig = {
   get heuristApiKey() {
     return required("HEURIST_API_KEY");
   },
+  get testTokenClaimsEnabled() {
+    return process.env.TEST_TOKEN_CLAIMS_ENABLED?.trim().toLowerCase() === "true";
+  },
+  get testTokenSourceWalletId() {
+    return required("TEST_TOKEN_SOURCE_WALLET_ID");
+  },
 } as const;

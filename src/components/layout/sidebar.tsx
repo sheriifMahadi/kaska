@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { SignOutButton } from "@clerk/nextjs";
 import { dashboardNav } from "@/constants/navigation";
 import {
@@ -11,6 +11,7 @@ import {
   Users,
   Menu,
   Power,
+  Coins,
   X,
 } from "lucide-react";
 import { useDashboardData } from
@@ -20,6 +21,51 @@ export function Sidebar() {
   const pathname = usePathname();
   const { data, loading } = useDashboardData();
   const [open, setOpen] = useState(false);
+  const [grant, setGrant] = useState<{
+    enabled: boolean;
+    walletReady: boolean;
+    status: "available" | "pending" | "completed" | "failed";
+    error: string | null;
+  } | null>(null);
+  const [claiming, setClaiming] = useState(false);
+
+  const loadGrant = useCallback(async () => {
+    const response = await fetch("/api/test-token");
+    if (!response.ok) return;
+    setGrant(await response.json());
+  }, []);
+
+  useEffect(() => {
+    void loadGrant();
+  }, [loadGrant]);
+
+  useEffect(() => {
+    if (grant?.status !== "pending") return;
+    const timer = window.setInterval(() => void loadGrant(), 3_000);
+    return () => window.clearInterval(timer);
+  }, [grant?.status, loadGrant]);
+
+  async function claimTestToken() {
+    setClaiming(true);
+    try {
+      const response = await fetch("/api/test-token", { method: "POST" });
+      const body = await response.json();
+      if (!response.ok) throw new Error(body.error || "Could not send test USDC");
+      setGrant((current) => current
+        ? { ...current, status: body.status, error: null }
+        : current);
+    } catch (error) {
+      setGrant((current) => current
+        ? {
+            ...current,
+            status: "failed",
+            error: error instanceof Error ? error.message : "Could not send test USDC",
+          }
+        : current);
+    } finally {
+      setClaiming(false);
+    }
+  }
 
   return (
     <>
@@ -129,7 +175,7 @@ export function Sidebar() {
           </p>
         </div>
 
-        <div className="flex justify-center border-t border-zinc-900 pt-3">
+        <div className="flex items-center justify-center gap-2 border-t border-zinc-900 pt-3">
           <SignOutButton redirectUrl="/">
             <button
               type="button"
@@ -140,6 +186,24 @@ export function Sidebar() {
               <Power size={18} />
             </button>
           </SignOutButton>
+          {grant?.enabled && grant.walletReady && grant.status !== "completed" ? (
+            <button
+              type="button"
+              onClick={claimTestToken}
+              disabled={claiming || grant.status === "pending"}
+              aria-label="Get test token"
+              title={grant.error ?? "Get test token"}
+              className="inline-flex items-center gap-2 rounded-lg border border-zinc-800 bg-black px-3 py-2 text-xs font-medium text-zinc-300 transition hover:border-zinc-700 hover:bg-zinc-950 hover:text-white disabled:cursor-wait disabled:opacity-60"
+            >
+              <Coins
+                size={16}
+                className={claiming || grant.status === "pending"
+                  ? "animate-spin"
+                  : undefined}
+              />
+              Get test token
+            </button>
+          ) : null}
         </div>
       </div>
       </aside>

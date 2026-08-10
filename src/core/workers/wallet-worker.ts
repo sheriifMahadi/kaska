@@ -6,6 +6,8 @@ import { reconcileCircleTransactions } from
   "@/modules/wallets/application/reconcile-circle-transactions";
 import { syncPendingWithdrawals } from
   "@/modules/wallets/application/sync-pending-withdrawals";
+import { processTestTokenGrants } from
+  "@/modules/wallets/application/test-token-grants";
 import { sleep } from "./sleep";
 
 const POLL_INTERVAL_MS = 5_000;
@@ -18,6 +20,7 @@ export async function startWalletWorker(signal?: AbortSignal) {
     while (!signal?.aborted) {
       try {
         await processWalletProvisioningQueue();
+        await processTestTokenGrants(workerId);
         await syncPendingWithdrawals();
         await reconcileCircleTransactions();
       } catch (error) {

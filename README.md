@@ -48,12 +48,19 @@ OPENAI_API_KEY=
 HEURIST_API_KEY=
 TASK_WORKER_CONCURRENCY=4
 WORKER_INSTANCE_ID=local
+TEST_TOKEN_CLAIMS_ENABLED=false
+TEST_TOKEN_SOURCE_WALLET_ID=
 ```
 
 For testing, use a dedicated OpenRouter API key with a provider-enforced
 spending limit. Kaska records the cost returned for each successful OpenRouter
 execution, but the API-key limit is the hard stop that also covers failed or
 concurrent requests.
+
+To enable the temporary one-time Arc Testnet grant, set
+`TEST_TOKEN_CLAIMS_ENABLED=true` and provide the Circle wallet ID of a dedicated,
+funded distribution wallet in `TEST_TOKEN_SOURCE_WALLET_ID`. Never use the
+treasury or settlement wallet as the distribution wallet.
 
 `SETTLEMENT_PRIVATE_KEY` must control an address with the deployed contract's
 `SETTLEMENT_ROLE`; it is read only by the worker settlement path. Never expose

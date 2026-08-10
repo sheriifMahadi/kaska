@@ -130,6 +130,58 @@ export const wallets = pgTable(
   })
 );
 
+export const testTokenGrants = pgTable(
+  "test_token_grants",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    userId: uuid("user_id")
+      .notNull()
+      .unique()
+      .references(() => users.id, { onDelete: "cascade" }),
+    walletId: uuid("wallet_id")
+      .notNull()
+      .references(() => wallets.id, { onDelete: "cascade" }),
+    amount: numeric("amount", { precision: 18, scale: 6 })
+      .notNull()
+      .default("1.000000"),
+    status: text("status")
+      .$type<"pending" | "completed" | "failed">()
+      .notNull()
+      .default("pending"),
+    idempotencyKey: uuid("idempotency_key")
+      .defaultRandom()
+      .notNull()
+      .unique(),
+    circleTransactionId: text("circle_transaction_id").unique(),
+    txHash: text("tx_hash"),
+    error: text("error"),
+    attempts: integer("attempts").notNull().default(0),
+    nextAttemptAt: timestamp("next_attempt_at").defaultNow().notNull(),
+    leaseOwner: text("lease_owner"),
+    leaseExpiresAt: timestamp("lease_expires_at"),
+    submittedAt: timestamp("submitted_at"),
+    completedAt: timestamp("completed_at"),
+    failedAt: timestamp("failed_at"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (table) => ({
+    dueIdx: index("test_token_grant_due_idx").on(
+      table.status,
+      table.nextAttemptAt,
+      table.leaseExpiresAt
+    ),
+    statusCheck: check(
+      "test_token_grant_status_check",
+      sql`${table.status} in ('pending', 'completed', 'failed')`
+    ),
+    amountCheck: check(
+      "test_token_grant_amount_check",
+      sql`${table.amount} = 1`
+    ),
+  })
+);
+
 /* ---------------------------
    WALLET TRANSACTIONS
 ---------------------------- */
