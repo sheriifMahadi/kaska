@@ -121,8 +121,9 @@ export default function WithdrawalPanel({
       </button>
 
       <p className="text-xs leading-5 text-zinc-500">
-        Verify the network and recipient carefully. On-chain transfers
-        cannot be reversed.
+        Arc charges a small network fee in USDC, so you cannot withdraw
+        the entire wallet balance. Verify the recipient carefully;
+        on-chain transfers cannot be reversed.
       </p>
     </form>
   );

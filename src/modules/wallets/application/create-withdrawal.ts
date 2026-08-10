@@ -28,6 +28,37 @@ type WalletContext = {
 const WITHDRAWAL_WINDOW_MS = 10 * 60 * 1000;
 const WITHDRAWAL_LIMIT = 3;
 
+type CircleApiError = {
+  status?: number;
+  message?: string;
+  response?: {
+    status?: number;
+    data?: {
+      message?: string;
+      errors?: Array<{ message?: string }>;
+    };
+  };
+};
+
+function circleWithdrawalError(error: unknown) {
+  const apiError = error as CircleApiError;
+  const status = apiError.status ?? apiError.response?.status;
+  const detail =
+    apiError.response?.data?.errors?.[0]?.message ??
+    apiError.response?.data?.message ??
+    apiError.message;
+
+  if (status === 400 || status === 422) {
+    return conflict(
+      detail && !/api parameter invalid/i.test(detail)
+        ? `Withdrawal rejected by Circle: ${detail}`
+        : "Withdrawal could not cover the transfer and Arc network fee. Reduce the amount and try again."
+    );
+  }
+
+  return error;
+}
+
 export async function createWithdrawal(
   context: WalletContext,
   request: WithdrawalRequest
@@ -150,6 +181,31 @@ export async function createWithdrawal(
       throw conflict("Withdrawal exceeds your available USDC balance");
     }
 
+    let estimatedFeeMicroUsdc = 0n;
+    try {
+      const estimate = await circle.estimateTransferFee({
+        walletId: context.circleWalletId,
+        tokenId: usdc.token.id,
+        destinationAddress: request.recipient,
+        amount: [request.amount],
+      });
+      const estimatedFee = estimate.data?.medium?.networkFee;
+
+      if (estimatedFee) {
+        estimatedFeeMicroUsdc = parseExternalUsdcBalance(
+          estimatedFee
+        ).microUsdc;
+      }
+    } catch (error) {
+      throw circleWithdrawalError(error);
+    }
+
+    if (request.microUsdc + estimatedFeeMicroUsdc > withdrawable) {
+      throw conflict(
+        "Leave enough USDC for the Arc network fee. Reduce the withdrawal amount and try again."
+      );
+    }
+
     await tx.insert(walletTransactions).values({
       walletId: context.walletId,
       userId: context.userId,
@@ -163,17 +219,22 @@ export async function createWithdrawal(
       toAddress: request.recipient,
     });
 
-    const response = await circle.createTransaction({
-      walletId: context.circleWalletId,
-      tokenId: usdc.token.id,
-      destinationAddress: request.recipient,
-      amount: [request.amount],
-      idempotencyKey: request.idempotencyKey,
-      fee: {
-        type: "level",
-        config: { feeLevel: "MEDIUM" },
-      },
-    });
+    let response;
+    try {
+      response = await circle.createTransaction({
+        walletId: context.circleWalletId,
+        tokenId: usdc.token.id,
+        destinationAddress: request.recipient,
+        amount: [request.amount],
+        idempotencyKey: request.idempotencyKey,
+        fee: {
+          type: "level",
+          config: { feeLevel: "MEDIUM" },
+        },
+      });
+    } catch (error) {
+      throw circleWithdrawalError(error);
+    }
     const circleTransactionId = response.data?.id;
 
     if (!circleTransactionId) {
