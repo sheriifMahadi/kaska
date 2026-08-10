@@ -9,6 +9,7 @@ import {
 import { createAIProvider } from "./providers/provider-factory";
 import { normalizeProviderError } from "./providers/provider-error";
 import { canUseWebSearch } from "./providers/tool-policy";
+import { getAgentExecutionProfile } from "./agent-execution-profiles";
 
 export async function runTask(taskId: string) {
   const [context] = await db
@@ -16,9 +17,9 @@ export async function runTask(taskId: string) {
       title: tasks.title,
       prompt: tasks.prompt,
       agentName: agents.name,
+      agentSlug: agents.slug,
       agentDescription: agents.description,
       capabilities: agents.capabilities,
-      executionProvider: agents.executionProvider,
     })
     .from(tasks)
     .innerJoin(userAgents, eq(userAgents.id, tasks.userAgentId))
@@ -28,7 +29,12 @@ export async function runTask(taskId: string) {
 
   if (!context) throw new Error("Task execution context not found");
 
-  const provider = await createAIProvider(context.executionProvider);
+  const profile = getAgentExecutionProfile(context.agentSlug);
+  if (!profile) {
+    throw new Error("This agent does not have an approved execution profile");
+  }
+
+  const provider = await createAIProvider(profile.provider);
   const systemPrompt = buildSystemPrompt({
     name: context.agentName,
     description: context.agentDescription,
@@ -38,7 +44,7 @@ export async function runTask(taskId: string) {
 
   try {
     const allowWebSearch = canUseWebSearch(
-      context.executionProvider,
+      profile.provider,
       context.capabilities
     );
     const result = await provider.execute({

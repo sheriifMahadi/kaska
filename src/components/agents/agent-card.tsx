@@ -14,6 +14,7 @@ export type Agent = {
   supportsRecurring: boolean;
   employmentId: string | null;
   employmentStatus: "active" | "archived" | null;
+  isAvailable: boolean;
 };
 
 interface Props {
@@ -28,12 +29,17 @@ export function AgentCard({
   onHire,
 }: Props) {
   return (
-    <div className="rounded-2xl border border-zinc-800 bg-zinc-950 p-6 transition hover:border-violet-500">
+    <div className={`rounded-2xl border border-zinc-800 bg-zinc-950 p-6 transition ${agent.isAvailable ? "hover:border-violet-500" : "opacity-50"}`}>
       <div className="mb-5 flex items-center justify-between">
         <div>
           <h3 className="text-xl font-semibold text-white">
             {agent.name}
           </h3>
+          {!agent.isAvailable ? (
+            <span className="mt-2 inline-block rounded-full border border-zinc-700 px-2 py-0.5 text-xs text-zinc-500">
+              Coming soon
+            </span>
+          ) : null}
 
         </div>
 
@@ -82,10 +88,12 @@ export function AgentCard({
         </Link>
         <button
           onClick={onHire}
-          disabled={loading || agent.employmentStatus === "active"}
+          disabled={!agent.isAvailable || loading || agent.employmentStatus === "active"}
           className="flex-1 rounded-xl bg-violet-600 py-3 font-medium text-white transition hover:bg-violet-500 disabled:opacity-50"
         >
-          {loading
+          {!agent.isAvailable
+            ? "Unavailable"
+            : loading
             ? "Employing..."
             : agent.employmentStatus === "active"
               ? "Employed"

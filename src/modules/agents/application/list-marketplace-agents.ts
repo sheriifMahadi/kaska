@@ -4,11 +4,14 @@ import { and, asc, eq } from "drizzle-orm";
 
 import { agents, userAgents } from "@/db/schema";
 import { db } from "@/lib/db";
+import { hasAgentExecutionProfile } from
+  "@/core/execution/agent-execution-profiles";
 
 const marketplaceSelection = {
   id: agents.id,
   name: agents.name,
   slug: agents.slug,
+  isActive: agents.isActive,
   description: agents.description,
   capabilities: agents.capabilities,
   pricingType: agents.pricingType,
@@ -19,8 +22,8 @@ const marketplaceSelection = {
   employmentStatus: userAgents.status,
 };
 
-export function listMarketplaceAgents(userId: string) {
-  return db
+export async function listMarketplaceAgents(userId: string) {
+  const catalog = await db
     .select(marketplaceSelection)
     .from(agents)
     .leftJoin(
@@ -30,8 +33,9 @@ export function listMarketplaceAgents(userId: string) {
         eq(userAgents.userId, userId)
       )
     )
-    .where(eq(agents.isActive, true))
     .orderBy(asc(agents.name));
+
+  return catalog.map(toMarketplaceAgent);
 }
 
 export async function getMarketplaceAgentBySlug(
@@ -48,8 +52,18 @@ export async function getMarketplaceAgentBySlug(
         eq(userAgents.userId, userId)
       )
     )
-    .where(and(eq(agents.slug, slug), eq(agents.isActive, true)))
+    .where(eq(agents.slug, slug))
     .limit(1);
 
-  return agent ?? null;
+  return agent ? toMarketplaceAgent(agent) : null;
+}
+
+function toMarketplaceAgent<T extends { isActive: boolean; slug: string }>(
+  agent: T
+) {
+  return {
+    ...agent,
+    isAvailable:
+      agent.isActive && hasAgentExecutionProfile(agent.slug),
+  };
 }

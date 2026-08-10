@@ -72,6 +72,7 @@ export default async function AgentDetailPage({ params }: Props) {
         <EmployAgentButton
           agentId={agent.id}
           employmentStatus={agent.employmentStatus}
+          isAvailable={agent.isAvailable}
         />
       </div>
     </DashboardLayout>

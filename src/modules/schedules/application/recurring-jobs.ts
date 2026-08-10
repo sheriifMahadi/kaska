@@ -11,6 +11,8 @@ import {
   userAgents,
 } from "@/db/schema";
 import { db } from "@/lib/db";
+import { hasAgentExecutionProfile } from
+  "@/core/execution/agent-execution-profiles";
 import { requireActiveUserWallet } from
   "@/modules/identity/application/current-wallet";
 import { parsePositiveUsdc, parseUsdc } from
@@ -33,6 +35,7 @@ export async function createRecurringJob(userId: string, raw: unknown) {
   const [employment] = await db.select({
     status: userAgents.status,
     agentActive: agents.isActive,
+    agentSlug: agents.slug,
     supportsRecurring: agents.supportsRecurring,
     price: agents.price,
   }).from(userAgents)
@@ -46,6 +49,7 @@ export async function createRecurringJob(userId: string, raw: unknown) {
   if (
     employment.status !== "active" ||
     !employment.agentActive ||
+    !hasAgentExecutionProfile(employment.agentSlug) ||
     !employment.supportsRecurring
   ) throw conflict("This agent cannot accept recurring work");
 

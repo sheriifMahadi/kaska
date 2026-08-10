@@ -5,11 +5,13 @@ import { useState } from "react";
 type Props = {
   agentId: string;
   employmentStatus: "active" | "archived" | null;
+  isAvailable?: boolean;
 };
 
 export function EmployAgentButton({
   agentId,
   employmentStatus,
+  isAvailable = true,
 }: Props) {
   const [loading, setLoading] = useState(false);
   const [employed, setEmployed] = useState(false);
@@ -46,11 +48,13 @@ export function EmployAgentButton({
     <div>
       <button
         type="button"
-        disabled={loading || employmentStatus === "active" || employed}
+        disabled={!isAvailable || loading || employmentStatus === "active" || employed}
         onClick={employ}
         className="rounded-xl bg-violet-600 px-6 py-3 font-medium text-white hover:bg-violet-500 disabled:opacity-60"
       >
-        {loading
+        {!isAvailable
+          ? "Coming soon"
+          : loading
           ? "Employing..."
           : employmentStatus === "active"
             ? "Already employed"

@@ -16,6 +16,8 @@ import { recurringBudgetAllowsRun } from
   "@/modules/schedules/domain/recurring-job";
 import { persistPaidTask } from
   "@/modules/tasks/application/persist-paid-task";
+import { hasAgentExecutionProfile } from
+  "@/core/execution/agent-execution-profiles";
 
 const UNSETTLED_PAYMENT_STATES = [
   "approval_pending",
@@ -39,6 +41,7 @@ export async function materializeScheduledTask(
       job: recurringJobs,
       employmentStatus: userAgents.status,
       agentActive: agents.isActive,
+      agentSlug: agents.slug,
       supportsRecurring: agents.supportsRecurring,
       walletId: wallets.id,
       walletStatus: wallets.status,
@@ -61,6 +64,7 @@ export async function materializeScheduledTask(
     if (
       context.employmentStatus !== "active" ||
       !context.agentActive ||
+      !hasAgentExecutionProfile(context.agentSlug) ||
       !context.supportsRecurring
     ) throw new Error("The employed agent cannot accept recurring work");
     if (context.walletStatus !== "active") {

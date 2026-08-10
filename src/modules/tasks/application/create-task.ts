@@ -17,6 +17,8 @@ import {
 } from "@/shared/errors/application-error";
 import type { CreateTaskInput } from "./parse-create-task";
 import { persistPaidTask } from "./persist-paid-task";
+import { hasAgentExecutionProfile } from
+  "@/core/execution/agent-execution-profiles";
 
 export async function createTask(
   userId: string,
@@ -27,6 +29,7 @@ export async function createTask(
       id: userAgents.id,
       status: userAgents.status,
       agentActive: agents.isActive,
+      agentSlug: agents.slug,
       supportsOneTime: agents.supportsOneTime,
       price: agents.price,
     })
@@ -48,7 +51,11 @@ export async function createTask(
     throw invalidInput("Employed agent is not active");
   }
 
-  if (!employment.agentActive || !employment.supportsOneTime) {
+  if (
+    !employment.agentActive ||
+    !hasAgentExecutionProfile(employment.agentSlug) ||
+    !employment.supportsOneTime
+  ) {
     throw invalidInput("This agent does not accept one-time tasks");
   }
 

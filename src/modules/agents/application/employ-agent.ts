@@ -8,6 +8,8 @@ import {
   notFound,
 } from "@/shared/errors/application-error";
 import { employmentAction } from "@/modules/agents/domain/agent";
+import { hasAgentExecutionProfile } from
+  "@/core/execution/agent-execution-profiles";
 
 export async function employAgent(
   userId: string,
@@ -38,7 +40,7 @@ export async function employAgent(
       .for("update");
 
     const action = employmentAction(
-      agent.isActive,
+      agent.isActive && hasAgentExecutionProfile(agent.slug),
       existingEmployment?.status ?? null
     );
 
