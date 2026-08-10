@@ -6,20 +6,27 @@ import {
   failExhaustedTaskLeases,
 } from "@/modules/tasks/application/task-claims";
 import { sleep } from "./sleep";
+import {
+  taskWorkerConcurrency,
+  taskWorkerInstanceLabel,
+} from "./task-worker-config";
 
 const POLL_INTERVAL_MS = 1_000;
-const MAX_CONCURRENT_TASKS = 4;
 
 export async function startTaskWorker(signal?: AbortSignal) {
-  const workerId = `tasks-${randomUUID()}`;
+  const concurrency = taskWorkerConcurrency();
+  const instance = taskWorkerInstanceLabel();
+  const workerId = `tasks-${instance}-${randomUUID()}`;
   const activeTasks = new Set<Promise<void>>();
-  console.log(`Kaska task worker started (${workerId})`);
+  console.log(
+    `Kaska task worker started (${workerId}, slots=${concurrency})`
+  );
 
   try {
     while (!signal?.aborted) {
       try {
         await failExhaustedTaskLeases();
-        while (activeTasks.size < MAX_CONCURRENT_TASKS) {
+        while (activeTasks.size < concurrency) {
           const task = await claimNextTask(workerId);
           if (!task) break;
 

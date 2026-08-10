@@ -225,6 +225,13 @@
       "when": 1786365754740,
       "tag": "0031_mute_cardiac",
       "breakpoints": true
+    },
+    {
+      "idx": 32,
+      "version": "7",
+      "when": 1786370479203,
+      "tag": "0032_cool_wolfsbane",
+      "breakpoints": true
     }
   ]
 }

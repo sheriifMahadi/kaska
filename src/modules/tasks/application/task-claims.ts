@@ -1,6 +1,6 @@
 import { and, asc, eq, inArray, isNull, lt, lte, or, sql } from "drizzle-orm";
 
-import { taskAttempts, tasks } from "@/db/schema";
+import { taskAttempts, tasks, users } from "@/db/schema";
 import { db } from "@/lib/db";
 import { taskLeaseExpiresAt } from "../domain/task-lease";
 
@@ -8,9 +8,17 @@ export async function claimNextTask(workerId: string) {
   const now = new Date();
 
   return db.transaction(async (transaction) => {
+    const activeTasksForUser = sql<number>`(
+      select count(*)::int
+      from tasks active_tasks
+      where active_tasks.user_id = ${tasks.userId}
+        and active_tasks.status = 'running'
+        and active_tasks.lease_expires_at > ${now}
+    )`;
     const [candidate] = await transaction
-      .select({ id: tasks.id })
+      .select({ id: tasks.id, activeTasksForUser })
       .from(tasks)
+      .innerJoin(users, eq(users.id, tasks.userId))
       .where(
         and(
           lt(tasks.attemptCount, tasks.maxAttempts),
@@ -29,9 +37,13 @@ export async function claimNextTask(workerId: string) {
           )
         )
       )
-      .orderBy(asc(tasks.createdAt))
+      // Give every user one running slot before assigning a second, while
+      // retaining FIFO order between users with the same active-task count.
+      .orderBy(asc(activeTasksForUser), asc(tasks.createdAt))
       .limit(1)
-      .for("update", { skipLocked: true });
+      // Lock the owner row, not just one task row. Concurrent worker replicas
+      // must then skip this user's other jobs and consider another user.
+      .for("update", { of: users, skipLocked: true });
 
     if (!candidate) return null;
 

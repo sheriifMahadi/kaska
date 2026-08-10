@@ -1,0 +1,1 @@
+CREATE INDEX "task_user_running_idx" ON "tasks" USING btree ("user_id","status","lease_expires_at");

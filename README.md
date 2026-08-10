@@ -46,6 +46,8 @@ SETTLEMENT_PRIVATE_KEY=
 OPENROUTER_API_KEY=
 OPENAI_API_KEY=
 HEURIST_API_KEY=
+TASK_WORKER_CONCURRENCY=4
+WORKER_INSTANCE_ID=local
 ```
 
 For testing, use a dedicated OpenRouter API key with a provider-enforced
@@ -77,6 +79,22 @@ The workers are intentionally separate from Next.js. For simple local
 development, `npm run worker` runs all three responsibilities in one process.
 For deployment or isolation, run the three role-specific commands instead; do
 not run them alongside the all-in-one command.
+
+Task workers are stateless replicas sharing the PostgreSQL queue. Give each
+replica a recognizable `WORKER_INSTANCE_ID`; its unique lease ID is recorded in
+`task_attempts.worker_id`. `TASK_WORKER_CONCURRENCY` controls slots per replica
+and is constrained to 1-16. For example, three replicas with four slots provide
+up to twelve concurrent AI executions:
+
+```bash
+WORKER_INSTANCE_ID=task-a TASK_WORKER_CONCURRENCY=4 npm run worker:tasks
+WORKER_INSTANCE_ID=task-b TASK_WORKER_CONCURRENCY=4 npm run worker:tasks
+WORKER_INSTANCE_ID=task-c TASK_WORKER_CONCURRENCY=4 npm run worker:tasks
+```
+
+Scale gradually within the AI provider's request limits and the database's
+connection capacity. On shutdown, a replica stops claiming work and waits for
+its active tasks to finish; expired leases remain recoverable if it crashes.
 
 ## Database
 

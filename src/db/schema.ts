@@ -558,6 +558,11 @@ export const tasks = pgTable(
   },
   (table) => ({
     userIdx: index("task_user_idx").on(table.userId),
+    userRunningIdx: index("task_user_running_idx").on(
+      table.userId,
+      table.status,
+      table.leaseExpiresAt
+    ),
     workerIdx: index("task_worker_idx").on(table.userAgentId),
 
     statusCreatedIdx: index("task_status_created_idx").on(
