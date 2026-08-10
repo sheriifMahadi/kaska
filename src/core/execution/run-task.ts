@@ -4,7 +4,6 @@ import { agents, taskOutputs, tasks, userAgents } from "@/db/schema";
 import { db } from "@/lib/db";
 import {
   buildSystemPrompt,
-  TASK_OUTPUT_FORMAT,
 } from "./prompts/build-system-prompt";
 import { createAIProvider } from "./providers/provider-factory";
 import { normalizeProviderError } from "./providers/provider-error";
@@ -36,9 +35,13 @@ export async function runTask(taskId: string) {
 
   const provider = await createAIProvider(profile.provider);
   const systemPrompt = buildSystemPrompt({
-    name: context.agentName,
-    description: context.agentDescription,
-    capabilities: context.capabilities,
+    agent: {
+      name: context.agentName,
+      description: context.agentDescription,
+      capabilities: context.capabilities,
+    },
+    promptKey: profile.promptKey,
+    executionTimestamp: new Date().toISOString(),
   });
   const startedAt = performance.now();
 
@@ -71,7 +74,7 @@ export async function runTask(taskId: string) {
       tokens: result.totalTokens.toString(),
       latencyMs,
       finishReason: result.finishReason,
-      format: TASK_OUTPUT_FORMAT,
+      format: profile.outputFormat,
       cost: result.cost,
     });
 

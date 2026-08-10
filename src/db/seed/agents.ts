@@ -53,10 +53,10 @@ const catalog = [
     isActive: true,
   },
   {
-    name: "Trading Research Agent",
+    name: "Crypto Research Agent",
     slug: "trading-research-agent",
     description:
-      "Monitors market information and produces risk-aware trading research without executing trades",
+      "Monitors crypto markets and produces timestamped, source-backed analysis without executing trades",
     capabilities: ["web-search", "market-research", "risk-analysis"],
     executionProvider: "openai" as const,
     pricingType: "fixed_per_run" as const,

@@ -1,11 +1,13 @@
 import type { AgentExecutionProvider } from
   "@/modules/agents/domain/agent";
+import type { AgentPromptKey } from
+  "./prompts/build-system-prompt";
 
 export type AgentExecutionProfile = Readonly<{
   agentSlug: string;
   provider: AgentExecutionProvider;
   model: string;
-  promptKey: string;
+  promptKey: AgentPromptKey;
   tools: readonly ("web_search")[];
   outputFormat: "markdown_v1" | "structured_data_v1";
   maxOutputTokens: number;
