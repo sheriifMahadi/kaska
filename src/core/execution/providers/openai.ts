@@ -12,7 +12,7 @@ export class OpenAIProvider implements AIProvider {
     request: ExecutionRequest
   ): Promise<ExecutionResult> {
     const response = await openai.responses.create({
-      model: "gpt-5.4-mini",
+      model: request.model,
       input: [
         {
           role: "system",
@@ -27,7 +27,8 @@ export class OpenAIProvider implements AIProvider {
         ? [{ type: "web_search" }]
         : undefined,
       tool_choice: request.allowWebSearch ? "required" : undefined,
-    });
+      max_output_tokens: request.maxOutputTokens,
+    }, { signal: AbortSignal.timeout(request.timeoutMs) });
 
     return {
       output:

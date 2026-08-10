@@ -2,9 +2,12 @@ import type { AgentExecutionProvider } from
   "@/modules/agents/domain/agent";
 
 export type ExecutionRequest = {
+  model: string;
   systemPrompt: string;
   userPrompt: string;
   allowWebSearch: boolean;
+  maxOutputTokens: number;
+  timeoutMs: number;
 };
 
 export type ExecutionResult = {

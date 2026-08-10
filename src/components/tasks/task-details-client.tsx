@@ -11,6 +11,7 @@ type Attempt = {
   attemptNumber: number;
   status: "running" | "completed" | "failed" | "abandoned";
   provider: string | null;
+  requestedModel: string | null;
   model: string | null;
   latencyMs: number | null;
   errorCode: string | null;
@@ -57,6 +58,7 @@ type Task = {
   output: string | null;
   outputFormat: string | null;
   executionProvider: string | null;
+  requestedModel: string | null;
   model: string | null;
   inputTokens: number | null;
   outputTokens: number | null;
@@ -337,7 +339,8 @@ export function TaskDetailsClient({
           <Detail label="Priority" value={task.priority} />
           <Detail label="Attempts" value={`${task.attemptCount} / ${task.maxAttempts}`} />
           <Detail label="Provider" value={task.executionProvider ?? "—"} />
-          <Detail label="Model" value={task.model ?? "—"} />
+          <Detail label="Requested model" value={task.requestedModel ?? "—"} />
+          <Detail label="Returned model" value={task.model ?? "—"} />
           <Detail label="Input tokens" value={task.inputTokens?.toString() ?? "—"} />
           <Detail label="Output tokens" value={task.outputTokens?.toString() ?? "—"} />
           <Detail label="Total tokens" value={task.tokens ?? "—"} />

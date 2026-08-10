@@ -39,6 +39,7 @@ export async function executeTask(input: ExecuteTaskInput) {
         .set({
           status: "completed",
           provider: result.provider,
+          requestedModel: result.requestedModel,
           model: result.model,
           latencyMs: result.latencyMs,
           endedAt: now,
@@ -90,6 +91,7 @@ async function recordFailure(input: ExecuteTaskInput, error: unknown) {
       .set({
         status: "failed",
         provider: providerError?.provider,
+        requestedModel: providerError?.requestedModel,
         latencyMs: providerError?.latencyMs,
         errorCode: code,
         errorMessage: message,

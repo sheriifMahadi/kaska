@@ -18,7 +18,7 @@ export class HeuristProvider implements AIProvider {
     request: ExecutionRequest
   ): Promise<ExecutionResult> {
     const response = await client.chat.completions.create({
-      model: "meta-llama/llama-3-70b-instruct",
+      model: request.model,
       messages: [
         {
           role: "system",
@@ -30,7 +30,8 @@ export class HeuristProvider implements AIProvider {
         },
       ],
       temperature: 0.7,
-    });
+      max_tokens: request.maxOutputTokens,
+    }, { signal: AbortSignal.timeout(request.timeoutMs) });
 
     return {
       output:

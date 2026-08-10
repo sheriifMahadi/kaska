@@ -65,6 +65,7 @@ export async function GET(
         agentType: agents.slug,
 
         output: taskOutputs.output,
+        requestedModel: taskOutputs.requestedModel,
         model: taskOutputs.model,
         tokens: taskOutputs.tokens,
         inputTokens: taskOutputs.inputTokens,
@@ -119,6 +120,7 @@ export async function GET(
         attemptNumber: taskAttempts.attemptNumber,
         status: taskAttempts.status,
         provider: taskAttempts.provider,
+        requestedModel: taskAttempts.requestedModel,
         model: taskAttempts.model,
         latencyMs: taskAttempts.latencyMs,
         errorCode: taskAttempts.errorCode,

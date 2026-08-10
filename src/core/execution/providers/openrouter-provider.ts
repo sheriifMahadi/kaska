@@ -4,6 +4,7 @@ import {
   ExecutionRequest,
   ExecutionResult,
 } from "./ai-provider";
+import { buildOpenRouterRequest } from "./openrouter-request";
 
 export class OpenRouterProvider implements AIProvider {
   readonly name = "openrouter" as const;
@@ -11,19 +12,10 @@ export class OpenRouterProvider implements AIProvider {
   async execute(
     request: ExecutionRequest
   ): Promise<ExecutionResult> {
-    const response = await openrouter.chat.completions.create({
-      model: "openai/gpt-4o-mini",
-      messages: [
-        {
-          role: "system",
-          content: request.systemPrompt,
-        },
-        {
-          role: "user",
-          content: request.userPrompt,
-        },
-      ],
-    });
+    const response = await openrouter.chat.completions.create(
+      buildOpenRouterRequest(request),
+      { signal: AbortSignal.timeout(request.timeoutMs) }
+    );
 
     return {
       output:

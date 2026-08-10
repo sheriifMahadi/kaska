@@ -653,6 +653,7 @@ export const taskAttempts = pgTable(
       .notNull()
       .default("running"),
     provider: text("provider").$type<AgentExecutionProvider>(),
+    requestedModel: text("requested_model"),
     model: text("model"),
     latencyMs: integer("latency_ms"),
     errorCode: text("error_code"),
@@ -692,6 +693,8 @@ export const taskOutputs = pgTable(
     output: text("output").notNull(),
 
     model: text("model"),
+
+    requestedModel: text("requested_model"),
 
     provider: text("provider").$type<AgentExecutionProvider>(),
 

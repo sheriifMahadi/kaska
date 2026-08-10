@@ -8,6 +8,7 @@ export class ProviderExecutionError extends Error {
     readonly code: string,
     readonly retryable: boolean,
     readonly latencyMs: number,
+    readonly requestedModel?: string,
     options?: ErrorOptions
   ) {
     super(message, options);
@@ -18,7 +19,8 @@ export class ProviderExecutionError extends Error {
 export function normalizeProviderError(
   error: unknown,
   provider: AgentExecutionProvider,
-  latencyMs: number
+  latencyMs: number,
+  requestedModel?: string
 ) {
   if (error instanceof ProviderExecutionError) return error;
 
@@ -32,6 +34,7 @@ export function normalizeProviderError(
     status ? `PROVIDER_HTTP_${status}` : "PROVIDER_REQUEST_FAILED",
     retryable,
     latencyMs,
+    requestedModel,
     { cause: error }
   );
 }

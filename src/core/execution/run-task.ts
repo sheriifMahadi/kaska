@@ -51,9 +51,12 @@ export async function runTask(taskId: string) {
       context.capabilities
     );
     const result = await provider.execute({
+      model: profile.model,
       systemPrompt,
       userPrompt: `Task: ${context.title}\n\nInstructions:\n${context.prompt}`,
       allowWebSearch,
+      maxOutputTokens: profile.maxOutputTokens,
+      timeoutMs: profile.timeoutMs,
     });
     const latencyMs = Math.round(performance.now() - startedAt);
 
@@ -67,6 +70,7 @@ export async function runTask(taskId: string) {
     await db.insert(taskOutputs).values({
       taskId,
       output: result.output,
+      requestedModel: profile.model,
       provider: provider.name,
       model: result.model,
       inputTokens: result.inputTokens,
@@ -80,6 +84,7 @@ export async function runTask(taskId: string) {
 
     return {
       provider: provider.name,
+      requestedModel: profile.model,
       model: result.model,
       latencyMs,
     };
@@ -87,7 +92,8 @@ export async function runTask(taskId: string) {
     throw normalizeProviderError(
       error,
       provider.name,
-      Math.round(performance.now() - startedAt)
+      Math.round(performance.now() - startedAt),
+      profile.model
     );
   }
 }
