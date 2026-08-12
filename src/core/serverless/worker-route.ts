@@ -4,7 +4,7 @@ import { internalWorkerAuthorized } from "./internal-worker-auth";
 import type { BatchResult } from "./process-batches";
 import {
   followupDeduplicationId,
-  wakeWorker,
+  wakeWorkerSafely,
   type WorkerRole,
 } from "./qstash";
 
@@ -48,7 +48,7 @@ export function workerRoute(
         const delaySeconds = typeof followup === "string"
           ? followup === "payments" ? 5 : 1
           : followup.delaySeconds;
-        await wakeWorker(followupRole, {
+        await wakeWorkerSafely(followupRole, {
           delaySeconds,
           notBefore: typeof followup === "string"
             ? undefined
