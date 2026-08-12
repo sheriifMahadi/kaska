@@ -42,7 +42,9 @@ export async function wakeWorker(role: WorkerRole, options: WakeOptions = {}) {
 
   const nowSeconds = Math.floor(Date.now() / 1_000);
   const requestedNotBefore = options.notBefore
-    ? Math.floor(options.notBefore.getTime() / 1_000)
+    // QStash accepts whole seconds. Round up so a due-time message can never
+    // arrive just before the database timestamp it is meant to process.
+    ? Math.ceil(options.notBefore.getTime() / 1_000)
     : undefined;
   const notBefore = requestedNotBefore && requestedNotBefore > nowSeconds
     ? requestedNotBefore

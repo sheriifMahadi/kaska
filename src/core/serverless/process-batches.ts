@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { and, asc, eq, isNotNull, lt, or } from "drizzle-orm";
+import { and, asc, eq, inArray, isNotNull, lt, or } from "drizzle-orm";
 
 import { executeTask } from "@/core/execution/task-executor";
 import {
@@ -26,6 +26,7 @@ import { materializeScheduledTask } from
   "@/modules/schedules/application/materialize-scheduled-task";
 import {
   recurringJobs,
+  taskPayments,
   testTokenGrants,
   wallets,
   walletTransactions,
@@ -75,7 +76,24 @@ export async function processPaymentBatch(
     reconciliationLimit,
     `${workerId}-reconcile`
   );
-  return { processed, reconciled };
+  const [next] = await db.select({ updatedAt: taskPayments.updatedAt })
+    .from(taskPayments)
+    .where(inArray(taskPayments.status, [
+      "approval_pending",
+      "escrow_pending",
+      "locked",
+      "charge_pending",
+      "refund_pending",
+    ]))
+    .orderBy(asc(taskPayments.updatedAt))
+    .limit(1);
+  return {
+    processed,
+    reconciled,
+    nextPaymentWorkAt: next
+      ? Math.ceil((next.updatedAt.getTime() + 5_000) / 1_000)
+      : 0,
+  };
 }
 
 export async function processWalletBatch(
