@@ -1,4 +1,4 @@
-const DEFAULT_CONCURRENCY = 4;
+const DEFAULT_CONCURRENCY = 2;
 const MAX_CONCURRENCY_PER_REPLICA = 16;
 
 export function taskWorkerConcurrency(value = process.env.TASK_WORKER_CONCURRENCY) {

@@ -6,6 +6,7 @@ import { taskLeaseExpiresAt } from "../domain/task-lease";
 
 export async function claimNextTask(workerId: string) {
   const now = new Date();
+  const nowIso = now.toISOString();
 
   return db.transaction(async (transaction) => {
     const activeTasksForUser = sql<number>`(
@@ -13,7 +14,7 @@ export async function claimNextTask(workerId: string) {
       from tasks active_tasks
       where active_tasks.user_id = ${tasks.userId}
         and active_tasks.status = 'running'
-        and active_tasks.lease_expires_at > ${now}
+        and active_tasks.lease_expires_at > ${nowIso}::timestamp
     )`;
     const [candidate] = await transaction
       .select({ id: tasks.id, activeTasksForUser })

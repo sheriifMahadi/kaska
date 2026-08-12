@@ -9,6 +9,10 @@ import { parseCreateTaskInput } from
   "@/modules/tasks/application/parse-create-task";
 import { errorResponse } from
   "@/shared/http/error-response";
+import {
+  wakeDeduplicationId,
+  wakeWorkerSafely,
+} from "@/core/serverless/qstash";
 
 /* --------------------------------------------------
    GET: Fetch User Tasks
@@ -32,6 +36,12 @@ export async function POST(req: Request) {
     const user = await requireCurrentUser();
     const input = parseCreateTaskInput(await req.json());
     const result = await createTask(user.id, input);
+    await wakeWorkerSafely("payments", {
+      deduplicationId: wakeDeduplicationId(
+        "payments",
+        `task-${result.task.id}`
+      ),
+    });
 
     return NextResponse.json(result, { status: 201 });
   } catch (error) {

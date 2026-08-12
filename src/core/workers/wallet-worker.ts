@@ -1,13 +1,6 @@
 import { randomUUID } from "node:crypto";
 
-import { processWalletProvisioningQueue } from
-  "@/modules/identity/application/process-wallet-provisioning";
-import { reconcileCircleTransactions } from
-  "@/modules/wallets/application/reconcile-circle-transactions";
-import { syncPendingWithdrawals } from
-  "@/modules/wallets/application/sync-pending-withdrawals";
-import { processTestTokenGrants } from
-  "@/modules/wallets/application/test-token-grants";
+import { processWalletBatch } from "@/core/serverless/process-batches";
 import { sleep } from "./sleep";
 
 const POLL_INTERVAL_MS = 5_000;
@@ -19,10 +12,7 @@ export async function startWalletWorker(signal?: AbortSignal) {
   try {
     while (!signal?.aborted) {
       try {
-        await processWalletProvisioningQueue();
-        await processTestTokenGrants(workerId);
-        await syncPendingWithdrawals();
-        await reconcileCircleTransactions();
+        await processWalletBatch(5, workerId);
       } catch (error) {
         console.error("Wallet worker error:", error);
       }

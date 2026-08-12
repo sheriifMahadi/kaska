@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { asc, eq } from "drizzle-orm";
 
 import { wallets, walletTransactions } from "@/db/schema";
 import { circle } from "@/lib/circle";
@@ -8,19 +8,12 @@ import { parseExternalUsdcBalance } from
 import { statusFromCircleState } from
   "@/modules/wallets/domain/wallet-transaction";
 
-const RECONCILIATION_INTERVAL_MS = 30_000;
-let nextReconciliationAt = 0;
-
 export async function reconcileCircleTransactions(limit = 10) {
-  const now = Date.now();
-
-  if (now < nextReconciliationAt) return 0;
-  nextReconciliationAt = now + RECONCILIATION_INTERVAL_MS;
-
   const activeWallets = await db
     .select()
     .from(wallets)
     .where(eq(wallets.status, "active"))
+    .orderBy(asc(wallets.updatedAt))
     .limit(limit);
   let reconciled = 0;
 
@@ -113,8 +106,13 @@ export async function reconcileCircleTransactions(limit = 10) {
         `Circle reconciliation failed for wallet ${wallet.id}`,
         error
       );
+    } finally {
+      // Rotate wallets fairly across bounded serverless reconciliation runs.
+      await db.update(wallets)
+        .set({ updatedAt: new Date() })
+        .where(eq(wallets.id, wallet.id));
     }
   }
 
-  return reconciled;
+  return { transactions: reconciled, wallets: activeWallets.length };
 }

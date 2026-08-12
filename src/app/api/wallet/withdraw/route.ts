@@ -8,6 +8,10 @@ import { parseWithdrawalRequest } from
 import { invalidInput } from
   "@/shared/errors/application-error";
 import { errorResponse } from "@/shared/http/error-response";
+import {
+  wakeDeduplicationId,
+  wakeWorkerSafely,
+} from "@/core/serverless/qstash";
 
 export async function POST(request: NextRequest) {
   try {
@@ -27,6 +31,13 @@ export async function POST(request: NextRequest) {
       circleWalletId: wallet.circleWalletId,
       walletAddress: wallet.address,
     }, withdrawal);
+    await wakeWorkerSafely("wallets", {
+      delaySeconds: 5,
+      deduplicationId: wakeDeduplicationId(
+        "wallets",
+        `withdrawal-${result.transactionId}`
+      ),
+    });
 
     return NextResponse.json(result);
   } catch (error) {

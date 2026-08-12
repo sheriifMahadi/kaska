@@ -8,6 +8,10 @@ import {
 } from "@/modules/wallets/application/test-token-grants";
 import { serverConfig } from "@/platform/config/server";
 import { errorResponse } from "@/shared/http/error-response";
+import {
+  wakeDeduplicationId,
+  wakeWorkerSafely,
+} from "@/core/serverless/qstash";
 
 export async function GET() {
   try {
@@ -29,6 +33,12 @@ export async function POST() {
   try {
     const { user } = await requireCurrentWallet();
     const grant = await claimTestToken(user.id);
+    await wakeWorkerSafely("wallets", {
+      deduplicationId: wakeDeduplicationId(
+        "wallets",
+        `test-token-${user.id}`
+      ),
+    });
     return NextResponse.json(grant, { status: 202 });
   } catch (error) {
     return errorResponse(error, "POST /api/test-token");

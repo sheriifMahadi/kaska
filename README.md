@@ -32,25 +32,29 @@ production. See [docs/architecture.md](docs/architecture.md).
 
 ## Configuration
 
-Create `.env.local` for the web process:
+Copy `.env.example` to `.env.local` for local development. For Vercel, add the
+same values through project settings; never upload an environment file. The
+Vercel application also hosts the bounded task, payment, wallet, and scheduler
+handlers, so it needs the OpenRouter, settlement, and QStash secrets at runtime.
 
-```dotenv
-NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=
-CLERK_SECRET_KEY=
-CLERK_WEBHOOK_SECRET=
-DATABASE_URL=
-CIRCLE_API_KEY=
-CIRCLE_ENTITY_SECRET=
-NEXT_PUBLIC_ARC_RPC_URL=
-SETTLEMENT_PRIVATE_KEY=
-OPENROUTER_API_KEY=
-OPENAI_API_KEY=
-HEURIST_API_KEY=
-TASK_WORKER_CONCURRENCY=4
-WORKER_INSTANCE_ID=local
-TEST_TOKEN_CLAIMS_ENABLED=false
-TEST_TOKEN_SOURCE_WALLET_ID=
-```
+Use Supabase's transaction-mode pooler URL for `DATABASE_URL` and set
+`DATABASE_POOL_MAX=1`. `OPENAI_API_KEY` and `HEURIST_API_KEY` remain optional
+unless an execution profile uses those providers. `ARC_RPC_URL` is server-only;
+the older `NEXT_PUBLIC_ARC_RPC_URL` remains supported for local compatibility.
+
+`INTERNAL_WORKER_SECRET` protects the bounded serverless worker routes under
+`/api/internal/workers/*`. Generate a long random value and never expose it
+through a `NEXT_PUBLIC_` variable. QStash signature verification will replace
+direct bearer authentication for external delivery; this secret remains useful
+for local smoke tests and emergency manual invocation.
+
+For serverless delivery, configure
+`QSTASH_TOKEN`, `QSTASH_CURRENT_SIGNING_KEY`, and
+`QSTASH_NEXT_SIGNING_KEY`. Set `APP_URL` to the canonical HTTPS Vercel URL.
+Production worker routes reject the local bearer secret and accept only valid
+QStash signatures. After adding the values locally, run `npm run setup:qstash`
+after deployment to create the task queue and shared reconciliation schedules.
+See [the Vercel deployment guide](docs/deployment-vercel.md).
 
 For testing, use a dedicated OpenRouter API key with a provider-enforced
 spending limit. Kaska records the cost returned for each successful OpenRouter
@@ -71,7 +75,9 @@ recovery material, or private keys.
 
 ```bash
 npm run dev        # Next.js development server
-npm run worker     # wallet provisioning and task execution worker
+npm run worker     # all background roles, including the scheduler
+npm run service:web        # standalone production web service (uses PORT)
+npm run service:background # background service with health endpoint
 npm run worker:tasks    # task claiming and AI execution only
 npm run worker:payments # escrow confirmation and settlement only
 npm run worker:wallets  # wallet provisioning and transaction sync only
@@ -79,13 +85,35 @@ npm run typecheck
 npm run lint
 npm test
 npm run build
+npm run db:migrate # apply reviewed Drizzle migrations explicitly
 npm run check      # all web validation
 ```
 
-The workers are intentionally separate from Next.js. For simple local
-development, `npm run worker` runs all three responsibilities in one process.
-For deployment or isolation, run the three role-specific commands instead; do
-not run them alongside the all-in-one command.
+## Deployment
+
+The selected testnet deployment is Vercel + QStash + Supabase. Vercel serves
+the application and bounded worker endpoints; QStash wakes those endpoints,
+controls delivery, and retries failures. Do not deploy or run the continuous
+background worker beside this setup.
+
+## Optional container images
+
+The earlier two-service container setup remains available as a future escape
+hatch:
+
+- Web: `Dockerfile.web`, port `3000`, health path `/api/health`. Supply
+  `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` as a build argument and as a runtime
+  variable.
+- Background: `Dockerfile.background`, port `8080`, health path `/ready`.
+
+Both images run as non-root users. The web image uses Next.js standalone output;
+the background image does not contain Clerk secrets or Next.js build output.
+Real `.env` files and Circle recovery material are excluded from Docker build
+contexts by `.dockerignore`.
+
+In container mode, `npm run worker` runs all four background responsibilities in
+one process. Do not run it alongside the role-specific commands or alongside
+the Vercel/QStash production deployment.
 
 Task workers are stateless replicas sharing the PostgreSQL queue. Give each
 replica a recognizable `WORKER_INSTANCE_ID`; its unique lease ID is recorded in

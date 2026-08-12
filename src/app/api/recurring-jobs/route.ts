@@ -8,6 +8,9 @@ import {
 } from "@/modules/schedules/application/recurring-jobs";
 import { invalidInput } from "@/shared/errors/application-error";
 import { errorResponse } from "@/shared/http/error-response";
+import {
+  scheduleRecurringWake,
+} from "@/core/serverless/qstash";
 
 export async function GET() {
   try {
@@ -23,10 +26,9 @@ export async function POST(request: Request) {
     const user = await requireCurrentUser();
     const body = await request.json();
     try {
-      return NextResponse.json(
-        await createRecurringJob(user.id, body),
-        { status: 201 }
-      );
+      const job = await createRecurringJob(user.id, body);
+      await scheduleRecurringWake(job.id, job.nextRunAt);
+      return NextResponse.json(job, { status: 201 });
     } catch (error) {
       if (error instanceof Error && error.name === "Error") {
         throw invalidInput(error.message);

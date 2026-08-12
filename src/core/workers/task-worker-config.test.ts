@@ -6,8 +6,8 @@ import {
   taskWorkerInstanceLabel,
 } from "./task-worker-config";
 
-test("task worker defaults to four execution slots", () => {
-  assert.equal(taskWorkerConcurrency(undefined), 4);
+test("task worker defaults to two execution slots", () => {
+  assert.equal(taskWorkerConcurrency(undefined), 2);
 });
 
 test("task worker accepts bounded replica concurrency", () => {

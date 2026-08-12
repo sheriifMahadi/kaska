@@ -24,6 +24,10 @@ import { parseTaskId } from
   "@/modules/tasks/domain/task-id";
 import { deriveTaskWorkflowState } from
   "@/modules/tasks/domain/task-workflow";
+import {
+  wakeDeduplicationId,
+  wakeWorkerSafely,
+} from "@/core/serverless/qstash";
 
 type Props = {
   params: Promise<{
@@ -178,10 +182,21 @@ export async function PATCH(request: Request, { params }: Props) {
     const body = await request.json();
 
     if (body?.action === "cancel") {
-      return NextResponse.json(await cancelTask(user.id, id));
+      const task = await cancelTask(user.id, id);
+      await wakeWorkerSafely("payments", {
+        deduplicationId: wakeDeduplicationId(
+          "payments",
+          `cancel-${id}`
+        ),
+      });
+      return NextResponse.json(task);
     }
     if (body?.action === "retry") {
-      return NextResponse.json(await retryTask(user.id, id));
+      const task = await retryTask(user.id, id);
+      await wakeWorkerSafely("tasks", {
+        deduplicationId: wakeDeduplicationId("tasks", `retry-${id}`),
+      });
+      return NextResponse.json(task);
     }
     throw invalidInput("The supported task actions are cancel and retry");
   } catch (error) {

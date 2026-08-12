@@ -11,6 +11,9 @@ import {
 } from "@/modules/schedules/domain/recurring-job";
 import { invalidInput } from "@/shared/errors/application-error";
 import { errorResponse } from "@/shared/http/error-response";
+import {
+  scheduleRecurringWake,
+} from "@/core/serverless/qstash";
 
 type Props = { params: Promise<{ id: string }> };
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -47,10 +50,14 @@ export async function PATCH(request: Request, { params }: Props) {
       throw invalidInput("No recurring job change was provided");
     }
     try {
-      return NextResponse.json(await updateRecurringJob(user.id, id, {
+      const job = await updateRecurringJob(user.id, id, {
         status: status as RecurringJobStatus | undefined,
         spendingLimit,
-      }));
+      });
+      if (job.status === "active") {
+        await scheduleRecurringWake(job.id, job.nextRunAt);
+      }
+      return NextResponse.json(job);
     } catch (error) {
       if (error instanceof Error && error.name === "Error") {
         throw invalidInput(error.message);

@@ -9,6 +9,8 @@
     "dev": "NODE_OPTIONS=--dns-result-order=ipv4first next dev",
     "build": "next build",
     "start": "next start",
+    "service:web": "node .next/standalone/server.js",
+    "service:background": "tsx worker/background-main.ts",
     "worker": "tsx worker/main.ts",
     "worker:tasks": "tsx worker/task-main.ts",
     "worker:payments": "tsx worker/payment-main.ts",
@@ -16,19 +18,23 @@
     "scheduler": "tsx scheduler/main.ts",
     "seed:agents": "tsx src/db/seed/agents.ts",
     "create:test-token-wallet": "tsx scripts/create-test-token-wallet.ts",
+    "setup:qstash": "tsx scripts/setup-qstash.ts",
+    "db:migrate": "drizzle-kit migrate",
     "audit:phase6": "tsx scripts/audit-phase6.ts",
     "audit:phase7": "tsx scripts/audit-phase7.ts",
     "audit:phase8": "tsx scripts/audit-phase8.ts",
     "audit:phase9": "tsx scripts/audit-phase9.ts",
+    "test:qstash": "tsx --test src/core/serverless/qstash.test.ts",
     "test:phase7": "tsx --test src/core/execution/providers/tool-policy.test.ts src/modules/schedules/domain/recurring-job.test.ts",
     "typecheck": "next typegen && tsc --noEmit",
-    "test": "tsx --test src/core/execution/agent-execution-profiles.test.ts src/core/execution/prompts/build-system-prompt.test.ts src/core/execution/providers/openrouter-request.test.ts src/core/execution/providers/provider-error.test.ts src/core/workers/task-worker-config.test.ts src/modules/agents/domain/agent.test.ts src/modules/identity/application/provision-circle-wallet.test.ts src/modules/identity/domain/clerk-user-event.test.ts src/modules/identity/domain/ownership.test.ts src/modules/identity/domain/wallet-provisioning-policy.test.ts src/modules/payments/domain/task-payment.test.ts src/modules/payments/domain/usdc.test.ts src/modules/schedules/domain/recurring-job.test.ts src/modules/tasks/application/parse-create-task.test.ts src/modules/tasks/domain/task-id.test.ts src/modules/tasks/domain/task-lease.test.ts src/modules/tasks/domain/task-retry.test.ts src/modules/tasks/domain/task-status.test.ts src/modules/tasks/domain/task-workflow.test.ts src/modules/wallets/domain/wallet-balance.test.ts src/modules/wallets/domain/wallet-transaction.test.ts src/modules/wallets/domain/withdrawal.test.ts",
+    "test": "tsx --test src/platform/config/server.test.ts src/core/serverless/internal-worker-auth.test.ts src/core/execution/agent-execution-profiles.test.ts src/core/execution/prompts/build-system-prompt.test.ts src/core/execution/providers/openrouter-request.test.ts src/core/execution/providers/provider-error.test.ts src/core/workers/task-worker-config.test.ts src/modules/agents/domain/agent.test.ts src/modules/identity/application/provision-circle-wallet.test.ts src/modules/identity/domain/clerk-user-event.test.ts src/modules/identity/domain/ownership.test.ts src/modules/identity/domain/wallet-provisioning-policy.test.ts src/modules/payments/domain/task-payment.test.ts src/modules/payments/domain/usdc.test.ts src/modules/schedules/domain/recurring-job.test.ts src/modules/tasks/application/parse-create-task.test.ts src/modules/tasks/domain/task-id.test.ts src/modules/tasks/domain/task-lease.test.ts src/modules/tasks/domain/task-retry.test.ts src/modules/tasks/domain/task-status.test.ts src/modules/tasks/domain/task-workflow.test.ts src/modules/wallets/domain/wallet-balance.test.ts src/modules/wallets/domain/wallet-transaction.test.ts src/modules/wallets/domain/withdrawal.test.ts",
     "lint": "eslint",
-    "check": "npm run typecheck && npm run lint && npm test && npm run test:phase7 && npm run build"
+    "check": "npm run typecheck && npm run lint && npm test && npm run test:qstash && npm run test:phase7 && npm run build"
   },
   "dependencies": {
     "@circle-fin/developer-controlled-wallets": "^10.6.0",
     "@clerk/nextjs": "^7.5.2",
+    "@upstash/qstash": "^2.11.3",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "dotenv": "^17.4.2",
@@ -44,6 +50,7 @@
     "shadcn": "^4.10.0",
     "svix": "^1.95.2",
     "tailwind-merge": "^3.6.0",
+    "tsx": "^4.23.12",
     "tw-animate-css": "^1.4.0",
     "viem": "^2.52.0"
   },
@@ -56,7 +63,6 @@
     "eslint": "^9",
     "eslint-config-next": "16.2.7",
     "tailwindcss": "^4",
-    "tsx": "^4.22.4",
     "typescript": "^5"
   }
 }

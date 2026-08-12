@@ -7,6 +7,10 @@ import {
   processClerkWebhook,
   recordClerkWebhookFailure,
 } from "@/modules/identity/application/process-clerk-webhook";
+import {
+  wakeDeduplicationId,
+  wakeWorkerSafely,
+} from "@/core/serverless/qstash";
 
 export async function POST(req: Request) {
   const secret = serverConfig.clerkWebhookSecret;
@@ -38,6 +42,14 @@ export async function POST(req: Request) {
 
   try {
     const result = await processClerkWebhook(eventId, event);
+    if (
+      !result.duplicate
+      && (event.type === "user.created" || event.type === "user.updated")
+    ) {
+      await wakeWorkerSafely("wallets", {
+        deduplicationId: wakeDeduplicationId("wallets", eventId),
+      });
+    }
 
     return NextResponse.json({
       success: true,

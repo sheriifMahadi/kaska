@@ -1,9 +1,6 @@
 import { randomUUID } from "node:crypto";
 
-import { processTaskPayments } from
-  "@/modules/payments/application/process-task-payments";
-import { reconcileTaskPayments } from
-  "@/modules/payments/application/reconcile-task-payments";
+import { processPaymentBatch } from "@/core/serverless/process-batches";
 import { sleep } from "./sleep";
 
 const POLL_INTERVAL_MS = 1_000;
@@ -17,9 +14,10 @@ export async function startPaymentWorker(signal?: AbortSignal) {
   try {
     while (!signal?.aborted) {
       try {
-        await processTaskPayments(10, workerId);
-        if (Date.now() - lastReconciliationAt >= RECONCILIATION_INTERVAL_MS) {
-          await reconcileTaskPayments(5, workerId);
+        const reconcile =
+          Date.now() - lastReconciliationAt >= RECONCILIATION_INTERVAL_MS;
+        await processPaymentBatch(10, reconcile ? 5 : 0, workerId);
+        if (reconcile) {
           lastReconciliationAt = Date.now();
         }
       } catch (error) {
