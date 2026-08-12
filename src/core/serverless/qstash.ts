@@ -1,4 +1,5 @@
 import { Client } from "@upstash/qstash";
+import { randomUUID } from "node:crypto";
 
 export const workerRoles = [
   "tasks",
@@ -13,7 +14,12 @@ type WakeOptions = {
   notBefore?: Date;
   deduplicationId?: string;
   reconciliation?: boolean;
+  correlationId?: string;
 };
+
+export function workerParallelism(role: WorkerRole) {
+  return role === "payments" ? 3 : 1;
+}
 
 const MAX_FREE_DELAY_SECONDS = 7 * 24 * 60 * 60;
 export const SCHEDULE_RECONCILIATION_ID = "kaska-schedule-reconciliation";
@@ -60,7 +66,11 @@ export async function wakeWorker(role: WorkerRole, options: WakeOptions = {}) {
   const client = new Client({ token });
   const request = {
     url: `${baseUrl}/api/internal/workers/${role}`,
-    body: { role, reconciliation: options.reconciliation ?? false },
+    body: {
+      role,
+      reconciliation: options.reconciliation ?? false,
+      correlationId: options.correlationId ?? randomUUID(),
+    },
     delay: options.delaySeconds,
     notBefore,
     deduplicationId: options.deduplicationId,
@@ -75,7 +85,10 @@ export async function wakeWorker(role: WorkerRole, options: WakeOptions = {}) {
   } else {
     await client.publishJSON({
       ...request,
-      flowControl: { key: `kaska-${role}`, parallelism: 1 },
+      flowControl: {
+        key: `kaska-${role}`,
+        parallelism: workerParallelism(role),
+      },
     });
   }
 
@@ -154,7 +167,10 @@ export async function ensureWorkflowReconciliation() {
     retries: 3,
     retryDelay: "max(1000, pow(2, retried) * 1000)",
     timeout: 240,
-    flowControl: { key: "kaska-payments", parallelism: 1 },
+    flowControl: {
+      key: "kaska-payments",
+      parallelism: workerParallelism("payments"),
+    },
     label: ["kaska", "workflow", "reconciliation"],
   });
   return { configured: true as const, scheduleId: response.scheduleId };

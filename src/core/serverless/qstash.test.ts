@@ -4,9 +4,17 @@ import test from "node:test";
 import {
   followupDeduplicationId,
   qstashConfigured,
+  workerParallelism,
   wakeDeduplicationId,
   workerBaseUrl,
 } from "./qstash";
+
+test("payment callbacks allow cross-wallet concurrency", () => {
+  assert.equal(workerParallelism("payments"), 3);
+  assert.equal(workerParallelism("tasks"), 1);
+  assert.equal(workerParallelism("wallets"), 1);
+  assert.equal(workerParallelism("schedules"), 1);
+});
 
 test("worker URL prefers the explicit public application URL", () => {
   assert.equal(workerBaseUrl({
