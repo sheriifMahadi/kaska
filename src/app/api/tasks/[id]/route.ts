@@ -25,6 +25,7 @@ import { parseTaskId } from
 import { deriveTaskWorkflowState } from
   "@/modules/tasks/domain/task-workflow";
 import {
+  followupDeduplicationId,
   wakeDeduplicationId,
   wakeWorkerSafely,
 } from "@/core/serverless/qstash";
@@ -160,6 +161,23 @@ export async function GET(
       .orderBy(taskPaymentAttempts.preparedAt);
 
     const task = rows[0];
+    if (task.status === "queued") {
+      await wakeWorkerSafely("tasks", {
+        deduplicationId: followupDeduplicationId("tasks"),
+      });
+    } else if (
+      task.paymentStatus && [
+        "approval_pending",
+        "escrow_pending",
+        "locked",
+        "charge_pending",
+        "refund_pending",
+      ].includes(task.paymentStatus)
+    ) {
+      await wakeWorkerSafely("payments", {
+        deduplicationId: followupDeduplicationId("payments"),
+      });
+    }
     return NextResponse.json({
       ...task,
       workflowState: deriveTaskWorkflowState({

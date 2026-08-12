@@ -3,6 +3,7 @@ import { Client } from "@upstash/qstash";
 import {
   ensureScheduleReconciliation,
   ensureWalletReconciliation,
+  ensureWorkflowReconciliation,
 } from
   "../src/core/serverless/qstash";
 
@@ -18,6 +19,7 @@ async function main() {
   const details = await queue.get();
   const reconciliation = await ensureScheduleReconciliation();
   const walletReconciliation = await ensureWalletReconciliation();
+  const workflowReconciliation = await ensureWorkflowReconciliation();
 
   console.log(JSON.stringify({
     queue: details.name,
@@ -28,6 +30,9 @@ async function main() {
       : "waiting_for_APP_URL",
     walletReconciliation: walletReconciliation.configured
       ? walletReconciliation.scheduleId
+      : "waiting_for_APP_URL",
+    workflowReconciliation: workflowReconciliation.configured
+      ? workflowReconciliation.scheduleId
       : "waiting_for_APP_URL",
   }, null, 2));
 }

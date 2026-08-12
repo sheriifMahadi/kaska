@@ -13,6 +13,7 @@ import { invalidInput } from "@/shared/errors/application-error";
 import { errorResponse } from "@/shared/http/error-response";
 import {
   scheduleRecurringWake,
+  wakeWorkerSafely,
 } from "@/core/serverless/qstash";
 
 type Props = { params: Promise<{ id: string }> };
@@ -24,7 +25,15 @@ export async function GET(_: Request, { params }: Props) {
     const user = await requireCurrentUser();
     const { id } = await params;
     if (!UUID.test(id)) throw invalidInput("Recurring job ID is invalid");
-    return NextResponse.json(await getRecurringJob(user.id, id));
+    const job = await getRecurringJob(user.id, id);
+    if (
+      job.job.status === "active"
+      && job.job.nextRunAt
+      && new Date(job.job.nextRunAt).getTime() <= Date.now()
+    ) {
+      await wakeWorkerSafely("schedules");
+    }
+    return NextResponse.json(job);
   } catch (error) {
     return errorResponse(error, "GET /api/recurring-jobs/[id]");
   }

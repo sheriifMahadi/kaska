@@ -18,6 +18,7 @@ type WakeOptions = {
 const MAX_FREE_DELAY_SECONDS = 7 * 24 * 60 * 60;
 export const SCHEDULE_RECONCILIATION_ID = "kaska-schedule-reconciliation";
 export const WALLET_RECONCILIATION_ID = "kaska-wallet-reconciliation";
+export const WORKFLOW_RECONCILIATION_ID = "kaska-workflow-reconciliation";
 
 export function workerBaseUrl(
   environment: Readonly<Record<string, string | undefined>> = process.env
@@ -131,6 +132,30 @@ export async function ensureWalletReconciliation() {
     timeout: 240,
     flowControl: { key: "kaska-wallets", parallelism: 1 },
     label: ["kaska", "wallets", "reconciliation"],
+  });
+  return { configured: true as const, scheduleId: response.scheduleId };
+}
+
+/**
+ * Safety net for lost payment/task follow-ups. Payment processing also wakes
+ * queued task execution, so one shared callback recovers both workflow stages.
+ */
+export async function ensureWorkflowReconciliation() {
+  const token = process.env.QSTASH_TOKEN?.trim();
+  const baseUrl = workerBaseUrl();
+  if (!token || !baseUrl) return { configured: false as const };
+
+  const response = await new Client({ token }).schedules.create({
+    destination: `${baseUrl}/api/internal/workers/payments`,
+    scheduleId: WORKFLOW_RECONCILIATION_ID,
+    cron: "*/5 * * * *",
+    body: JSON.stringify({ role: "payments", reconciliation: true }),
+    headers: { "Content-Type": "application/json" },
+    retries: 3,
+    retryDelay: "max(1000, pow(2, retried) * 1000)",
+    timeout: 240,
+    flowControl: { key: "kaska-payments", parallelism: 1 },
+    label: ["kaska", "workflow", "reconciliation"],
   });
   return { configured: true as const, scheduleId: response.scheduleId };
 }
