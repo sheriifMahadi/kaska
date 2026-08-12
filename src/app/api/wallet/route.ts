@@ -5,10 +5,22 @@ import { requireCurrentWallet } from
 import { MAX_WALLET_PROVISIONING_ATTEMPTS } from
   "@/modules/identity/domain/wallet-provisioning-policy";
 import { errorResponse } from "@/shared/http/error-response";
+import {
+  followupDeduplicationId,
+  wakeWorkerSafely,
+} from "@/core/serverless/qstash";
 
 export async function GET() {
   try {
     const { wallet } = await requireCurrentWallet();
+    if (
+      wallet.status === "pending"
+      || (wallet.status === "failed" && wallet.nextProvisioningAttemptAt)
+    ) {
+      await wakeWorkerSafely("wallets", {
+        deduplicationId: followupDeduplicationId("wallets"),
+      });
+    }
     const automaticRetryScheduled = Boolean(
       wallet.status === "failed" &&
         wallet.nextProvisioningAttemptAt

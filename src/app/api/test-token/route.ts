@@ -9,6 +9,7 @@ import {
 import { serverConfig } from "@/platform/config/server";
 import { errorResponse } from "@/shared/http/error-response";
 import {
+  followupDeduplicationId,
   wakeDeduplicationId,
   wakeWorkerSafely,
 } from "@/core/serverless/qstash";
@@ -17,6 +18,11 @@ export async function GET() {
   try {
     const { user, wallet } = await requireCurrentWallet();
     const grant = await getTestTokenGrant(user.id);
+    if (grant?.status === "pending") {
+      await wakeWorkerSafely("wallets", {
+        deduplicationId: followupDeduplicationId("wallets"),
+      });
+    }
     return NextResponse.json({
       enabled: serverConfig.testTokenClaimsEnabled,
       walletReady: wallet.status === "active" && Boolean(wallet.address),
