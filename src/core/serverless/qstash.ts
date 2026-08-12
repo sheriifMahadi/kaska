@@ -184,7 +184,7 @@ export async function wakeWorkerSafely(
     return await wakeWorker(role, options);
   } catch (error) {
     console.error(`Could not wake ${role} worker`, error);
-    return { queued: false as const };
+    return { queued: false as const, reason: "publish_failed" as const };
   }
 }
 

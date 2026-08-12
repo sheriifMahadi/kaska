@@ -92,6 +92,15 @@ export function workerRoute(
           correlationId,
           queued: wake.queued,
         });
+        // The completed database batch is idempotent. Returning an error here
+        // asks QStash to retry the invocation when it could not persist the
+        // next workflow message, instead of silently waiting for the slower
+        // reconciliation schedule.
+        if (!wake.queued && wake.reason === "publish_failed") {
+          throw new Error(
+            `Could not persist the ${followupRole} worker follow-up`
+          );
+        }
       }
       workerLog("batch.completed", {
         role,
