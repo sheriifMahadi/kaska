@@ -9,8 +9,8 @@ import {
   workerBaseUrl,
 } from "./qstash";
 
-test("payment callbacks allow cross-wallet concurrency", () => {
-  assert.equal(workerParallelism("payments"), 3);
+test("stateful worker callbacks remain serialized", () => {
+  assert.equal(workerParallelism("payments"), 1);
   assert.equal(workerParallelism("tasks"), 1);
   assert.equal(workerParallelism("wallets"), 1);
   assert.equal(workerParallelism("schedules"), 1);

@@ -1,4 +1,4 @@
-import { and, asc, eq, inArray, isNull, lte, or, sql } from "drizzle-orm";
+import { and, asc, eq, inArray, isNull, lte, or } from "drizzle-orm";
 import { randomUUID } from "node:crypto";
 import { encodeFunctionData, getAddress } from "viem";
 
@@ -107,7 +107,6 @@ async function claimNextPayment(workerId: string) {
     const [candidate] = await transaction
       .select({ id: taskPayments.id })
       .from(taskPayments)
-      .innerJoin(wallets, eq(wallets.id, taskPayments.walletId))
       .where(
         and(
           inArray(taskPayments.status, [...ACTIVE_PAYMENT_STATES]),
@@ -115,24 +114,12 @@ async function claimNextPayment(workerId: string) {
           or(
             isNull(taskPayments.processingLeaseExpiresAt),
             lte(taskPayments.processingLeaseExpiresAt, now)
-          ),
-          // Circle serializes transactions from one developer-controlled
-          // wallet. Do the same here while allowing unrelated wallets to make
-          // progress in parallel worker invocations.
-          sql`not exists (
-            select 1
-            from "task_payments" as "leased_payment"
-            where "leased_payment"."wallet_id" = ${taskPayments.walletId}
-              and "leased_payment"."id" <> ${taskPayments.id}
-              and "leased_payment"."processing_lease_expires_at" > ${now}
-          )`
+          )
         )
       )
       .orderBy(asc(taskPayments.updatedAt))
       .limit(1)
-      // Lock the wallet row during selection so two transactions cannot both
-      // establish the first active lease for the same wallet.
-      .for("update", { of: wallets, skipLocked: true });
+      .for("update", { skipLocked: true });
 
     if (!candidate) return null;
     await transaction.update(taskPayments).set({

@@ -18,7 +18,8 @@ type WakeOptions = {
 };
 
 export function workerParallelism(role: WorkerRole) {
-  return role === "payments" ? 3 : 1;
+  void role;
+  return 1;
 }
 
 const MAX_FREE_DELAY_SECONDS = 7 * 24 * 60 * 60;
