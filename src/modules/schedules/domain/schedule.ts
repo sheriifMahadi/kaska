@@ -10,6 +10,7 @@ type ScheduleResult = {
 };
 
 export const SCHEDULE_LEASE_MS = 2 * 60 * 1_000;
+export const MIN_SCHEDULE_DELIVERY_WINDOW_MS = 5 * 60 * 1_000;
 
 export function scheduleLeaseExpiresAt(now = new Date()) {
   return new Date(now.getTime() + SCHEDULE_LEASE_MS);
@@ -95,8 +96,13 @@ export function scheduledRunIsStale(
   intervalMinutes: number,
   now = new Date()
 ) {
-  return now.getTime() >=
-    scheduledFor.getTime() + intervalMinutes * 60_000;
+  // Short test schedules must tolerate normal serverless/QStash delivery
+  // latency. Longer schedules retain their full interval as the run window.
+  const deliveryWindowMs = Math.max(
+    intervalMinutes * 60_000,
+    MIN_SCHEDULE_DELIVERY_WINDOW_MS
+  );
+  return now.getTime() >= scheduledFor.getTime() + deliveryWindowMs;
 }
 
 export function formatScheduleTime(date: Date, timezone: string) {

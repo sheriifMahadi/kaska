@@ -155,7 +155,27 @@ test("scheduler leases expire and become recoverable", () => {
   );
 });
 
-test("an occurrence one full interval late is missed, not executed", () => {
+test("short schedules tolerate serverless delivery latency", () => {
+  const scheduledFor = new Date("2026-08-09T10:00:00.000Z");
+  assert.equal(
+    scheduledRunIsStale(
+      scheduledFor,
+      1,
+      new Date("2026-08-09T10:04:59.000Z")
+    ),
+    false
+  );
+  assert.equal(
+    scheduledRunIsStale(
+      scheduledFor,
+      1,
+      new Date("2026-08-09T10:05:00.000Z")
+    ),
+    true
+  );
+});
+
+test("long schedules use their interval as the delivery window", () => {
   const scheduledFor = new Date("2026-08-09T10:00:00.000Z");
   assert.equal(
     scheduledRunIsStale(
