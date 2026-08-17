@@ -52,7 +52,10 @@ export function DashboardDataProvider({ children }: { children: ReactNode }) {
     const load = () => {
       if (inFlight) return;
       inFlight = true;
-      void fetch("/api/dashboard", { signal: controller.signal })
+      void fetch("/api/dashboard", {
+        signal: controller.signal,
+        cache: "no-store",
+      })
         .then(async (response) => {
           const body = await response.json();
           if (!response.ok) throw new Error(body.error || "Could not load dashboard data");
@@ -68,9 +71,14 @@ export function DashboardDataProvider({ children }: { children: ReactNode }) {
     };
     const initialLoad = window.setTimeout(load, 0);
     const refresh = window.setInterval(load, 10_000);
+    const refreshWhenVisible = () => {
+      if (document.visibilityState === "visible") load();
+    };
+    document.addEventListener("visibilitychange", refreshWhenVisible);
     return () => {
       window.clearTimeout(initialLoad);
       window.clearInterval(refresh);
+      document.removeEventListener("visibilitychange", refreshWhenVisible);
       controller.abort();
     };
   }, [refreshKey]);
