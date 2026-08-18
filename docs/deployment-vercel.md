@@ -24,16 +24,19 @@ production HTTPS URL; preview deployments may use Vercel's automatically
 provided URL for worker destination construction, but should not receive live
 Clerk webhooks or production QStash schedules.
 
-The four internal worker routes use the Node.js runtime. Task, payment, and
-wallet invocations have a 240-second limit; scheduler invocations have a
-60-second limit. Each invocation claims a bounded amount of work and delegates
-continuation through QStash before it ends.
+The task, payment, wallet, scheduler, and maintenance routes use the Node.js
+runtime. Task, payment, wallet, and maintenance invocations have a 240-second
+limit; scheduler invocations have a 60-second limit. Each invocation claims a
+bounded amount of work. Required follow-up delivery is recorded in PostgreSQL
+before the invocation ends, so a temporary QStash failure does not turn
+completed work into an HTTP retry storm.
 
 ## After the first deployment
 
 1. Set `APP_URL` to the stable Vercel production URL and redeploy.
 2. Run `npm run setup:qstash` with the production environment values. This
-   creates the task queue plus the shared recurring-job and wallet
+   creates the task queue and one shared maintenance schedule. Once that
+   schedule exists, setup removes the older wallet, recurring-job, and workflow
    reconciliation schedules.
 3. Point the Clerk webhook at `<APP_URL>/api/clerk/webhook`.
 4. Confirm `<APP_URL>/api/health` returns `ready`.

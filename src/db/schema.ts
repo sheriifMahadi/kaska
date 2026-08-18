@@ -968,3 +968,59 @@ export const walletLocks = pgTable("wallet_locks", {
 
   releasedAt: timestamp("released_at"),
 });
+
+export type WorkerOutboxRole =
+  | "tasks"
+  | "payments"
+  | "wallets"
+  | "schedules";
+
+export type WorkerOutboxStatus =
+  | "pending"
+  | "processing"
+  | "published";
+
+export const workerOutbox = pgTable(
+  "worker_outbox",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    role: text("role").$type<WorkerOutboxRole>().notNull(),
+    deduplicationKey: text("deduplication_key").notNull().unique(),
+    correlationId: text("correlation_id").notNull(),
+    reconciliation: boolean("reconciliation").notNull().default(false),
+    notBefore: timestamp("not_before").defaultNow().notNull(),
+    status: text("status")
+      .$type<WorkerOutboxStatus>()
+      .notNull()
+      .default("pending"),
+    attemptCount: integer("attempt_count").notNull().default(0),
+    nextAttemptAt: timestamp("next_attempt_at").defaultNow().notNull(),
+    processingOwner: text("processing_owner"),
+    processingLeaseExpiresAt: timestamp("processing_lease_expires_at"),
+    lastError: text("last_error"),
+    publishedAt: timestamp("published_at"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (table) => ({
+    pendingIdx: index("worker_outbox_pending_idx").on(
+      table.status,
+      table.nextAttemptAt
+    ),
+    leaseIdx: index("worker_outbox_lease_idx").on(
+      table.processingLeaseExpiresAt
+    ),
+    roleCheck: check(
+      "worker_outbox_role_check",
+      sql`${table.role} in ('tasks', 'payments', 'wallets', 'schedules')`
+    ),
+    statusCheck: check(
+      "worker_outbox_status_check",
+      sql`${table.status} in ('pending', 'processing', 'published')`
+    ),
+    attemptCheck: check(
+      "worker_outbox_attempt_count_check",
+      sql`${table.attemptCount} >= 0`
+    ),
+  })
+);

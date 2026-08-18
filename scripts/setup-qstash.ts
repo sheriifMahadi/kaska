@@ -1,9 +1,8 @@
 import { config } from "dotenv";
 import { Client } from "@upstash/qstash";
 import {
-  ensureScheduleReconciliation,
-  ensureWalletReconciliation,
-  ensureWorkflowReconciliation,
+  ensureMaintenanceReconciliation,
+  removeLegacyReconciliationSchedules,
 } from
   "../src/core/serverless/qstash";
 
@@ -17,23 +16,20 @@ async function main() {
   const queue = client.queue({ queueName: "kaska-tasks" });
   await queue.upsert({ parallelism: 2 });
   const details = await queue.get();
-  const reconciliation = await ensureScheduleReconciliation();
-  const walletReconciliation = await ensureWalletReconciliation();
-  const workflowReconciliation = await ensureWorkflowReconciliation();
+  const maintenance = await ensureMaintenanceReconciliation();
+  const legacy = maintenance.configured
+    ? await removeLegacyReconciliationSchedules()
+    : { configured: false as const };
 
   console.log(JSON.stringify({
     queue: details.name,
     parallelism: details.parallelism,
     paused: details.paused,
-    scheduleReconciliation: reconciliation.configured
-      ? reconciliation.scheduleId
+    maintenanceReconciliation: maintenance.configured
+      ? maintenance.scheduleId
       : "waiting_for_APP_URL",
-    walletReconciliation: walletReconciliation.configured
-      ? walletReconciliation.scheduleId
-      : "waiting_for_APP_URL",
-    workflowReconciliation: workflowReconciliation.configured
-      ? workflowReconciliation.scheduleId
-      : "waiting_for_APP_URL",
+    removedLegacySchedules:
+      legacy.configured ? legacy.removed : [],
   }, null, 2));
 }
 

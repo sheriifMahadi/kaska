@@ -53,7 +53,9 @@ For serverless delivery, configure
 `QSTASH_NEXT_SIGNING_KEY`. Set `APP_URL` to the canonical HTTPS Vercel URL.
 Production worker routes reject the local bearer secret and accept only valid
 QStash signatures. After adding the values locally, run `npm run setup:qstash`
-after deployment to create the task queue and shared reconciliation schedules.
+after deployment to create the task queue and the shared maintenance schedule.
+The setup command removes the older wallet, schedule, and workflow reconciliation
+schedules only after the replacement schedule has been created successfully.
 See [the Vercel deployment guide](docs/deployment-vercel.md).
 
 For testing, use a dedicated OpenRouter API key with a provider-enforced

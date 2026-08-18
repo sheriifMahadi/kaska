@@ -26,6 +26,7 @@ const MAX_FREE_DELAY_SECONDS = 7 * 24 * 60 * 60;
 export const SCHEDULE_RECONCILIATION_ID = "kaska-schedule-reconciliation";
 export const WALLET_RECONCILIATION_ID = "kaska-wallet-reconciliation";
 export const WORKFLOW_RECONCILIATION_ID = "kaska-workflow-reconciliation";
+export const MAINTENANCE_RECONCILIATION_ID = "kaska-maintenance";
 
 export function workerBaseUrl(
   environment: Readonly<Record<string, string | undefined>> = process.env
@@ -75,7 +76,7 @@ export async function wakeWorker(role: WorkerRole, options: WakeOptions = {}) {
     delay: options.delaySeconds,
     notBefore,
     deduplicationId: options.deduplicationId,
-    retries: 3,
+    retries: 1,
     retryDelay: "max(1000, pow(2, retried) * 1000)",
     timeout: role === "schedules" ? 60 : 240,
     label: [`kaska`, role],
@@ -94,6 +95,46 @@ export async function wakeWorker(role: WorkerRole, options: WakeOptions = {}) {
   }
 
   return { queued: true as const };
+}
+
+export async function ensureMaintenanceReconciliation() {
+  const token = process.env.QSTASH_TOKEN?.trim();
+  const baseUrl = workerBaseUrl();
+  if (!token || !baseUrl) return { configured: false as const };
+
+  const response = await new Client({ token }).schedules.create({
+    destination: `${baseUrl}/api/internal/workers/maintenance`,
+    scheduleId: MAINTENANCE_RECONCILIATION_ID,
+    cron: "*/15 * * * *",
+    body: JSON.stringify({ reconciliation: true }),
+    headers: { "Content-Type": "application/json" },
+    retries: 1,
+    retryDelay: "max(1000, pow(2, retried) * 1000)",
+    timeout: 240,
+    flowControl: { key: "kaska-maintenance", parallelism: 1 },
+    label: ["kaska", "maintenance", "reconciliation"],
+  });
+  return { configured: true as const, scheduleId: response.scheduleId };
+}
+
+export async function removeLegacyReconciliationSchedules() {
+  const token = process.env.QSTASH_TOKEN?.trim();
+  if (!token) return { configured: false as const };
+  const schedules = new Client({ token }).schedules;
+  const existing = new Set(
+    (await schedules.list()).map(({ scheduleId }) => scheduleId)
+  );
+  const removed: string[] = [];
+  for (const scheduleId of [
+    SCHEDULE_RECONCILIATION_ID,
+    WALLET_RECONCILIATION_ID,
+    WORKFLOW_RECONCILIATION_ID,
+  ]) {
+    if (!existing.has(scheduleId)) continue;
+    await schedules.delete(scheduleId);
+    removed.push(scheduleId);
+  }
+  return { configured: true as const, removed };
 }
 
 export async function scheduleRecurringWake(

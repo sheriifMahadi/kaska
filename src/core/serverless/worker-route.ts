@@ -5,9 +5,9 @@ import { internalWorkerAuthorized } from "./internal-worker-auth";
 import type { BatchResult } from "./process-batches";
 import {
   followupDeduplicationId,
-  wakeWorkerSafely,
   type WorkerRole,
 } from "./qstash";
+import { requestWorkerWake } from "./worker-outbox";
 
 type Followup = WorkerRole | Readonly<{
   role: WorkerRole;
@@ -34,7 +34,7 @@ function workerLog(
 }
 
 export function workerRoute(
-  role: WorkerRole,
+  role: WorkerRole | "maintenance",
   processBatch: (invocation: WorkerInvocation) => Promise<BatchResult>,
   followups: (result: BatchResult) => readonly Followup[] = () => []
 ) {
@@ -72,35 +72,39 @@ export function workerRoute(
         const delaySeconds = typeof followup === "string"
           ? followup === "payments" ? 5 : 1
           : followup.delaySeconds;
-        const wake = await wakeWorkerSafely(followupRole, {
-          delaySeconds,
-          notBefore: typeof followup === "string"
-            ? undefined
-            : followup.notBefore,
-          reconciliation: typeof followup === "string"
-            ? false
-            : followup.reconciliation,
-          correlationId,
-          deduplicationId:
+        const deduplicationKey =
             typeof followup !== "string" && followup.notBefore
               ? `kaska-${followupRole}-next-${followup.notBefore.toISOString()}`
-              : followupDeduplicationId(followupRole),
-        });
+              : followupDeduplicationId(followupRole);
+        let wake = { persisted: false, published: false };
+        try {
+          wake = await requestWorkerWake({
+            role: followupRole,
+            delaySeconds,
+            notBefore: typeof followup === "string"
+              ? undefined
+              : followup.notBefore,
+            reconciliation: typeof followup === "string"
+              ? false
+              : followup.reconciliation,
+            correlationId,
+            deduplicationKey,
+          });
+        } catch (error) {
+          workerLog("followup.persistence_failed", {
+            role,
+            followupRole,
+            correlationId,
+            error: error instanceof Error ? error.message : "Unknown error",
+          });
+        }
         workerLog("followup.requested", {
           role,
           followupRole,
           correlationId,
-          queued: wake.queued,
+          persisted: wake.persisted,
+          published: wake.published,
         });
-        // The completed database batch is idempotent. Returning an error here
-        // asks QStash to retry the invocation when it could not persist the
-        // next workflow message, instead of silently waiting for the slower
-        // reconciliation schedule.
-        if (!wake.queued && wake.reason === "publish_failed") {
-          throw new Error(
-            `Could not persist the ${followupRole} worker follow-up`
-          );
-        }
       }
       workerLog("batch.completed", {
         role,
